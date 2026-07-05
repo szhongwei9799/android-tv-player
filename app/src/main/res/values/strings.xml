@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">多媒体展示系统</string>
+    <string name="scan_qr_hint">请扫码管理媒体内容</string>
+    <string name="backend_address">后台地址</string>
+    <string name="no_playlist">暂无播放列表</string>
+    <string name="loading">加载中...</string>
+    <string name="error_occurred">发生错误</string>
+    <string name="retry">重试</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="delete">删除</string>
+    <string name="edit">编辑</string>
+    <string name="save">保存</string>
+    <string name="upload">上传</string>
+    <string name="add_media">添加媒体</string>
+    <string name="create_playlist">创建播放列表</string>
+    <string name="settings">设置</string>
+</resources>

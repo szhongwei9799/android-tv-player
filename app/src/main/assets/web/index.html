@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多媒体展示系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="logo">多媒体展示系统</div>
+            <ul class="nav-links">
+                <li><a href="#media" class="nav-link active" data-page="media">媒体库</a></li>
+                <li><a href="#tags" class="nav-link" data-page="tags">标签</a></li>
+                <li><a href="#playlists" class="nav-link" data-page="playlists">播放列表</a></li>
+                <li><a href="#tasks" class="nav-link" data-page="tasks">定时任务</a></li>
+                <li><a href="#settings" class="nav-link" data-page="settings">设置</a></li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 媒体库页面 -->
+            <section id="media" class="page active">
+                <div class="page-header">
+                    <h2>媒体库</h2>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="showUploadModal()">上传文件</button>
+                        <button class="btn btn-secondary" onclick="showAddMediaModal()">添加网络媒体</button>
+                    </div>
+                </div>
+                
+                <!-- 筛选器 -->
+                <div class="filters">
+                    <select id="mediaTypeFilter" onchange="filterMedia()">
+                        <option value="">全部类型</option>
+                        <option value="VIDEO">视频</option>
+                        <option value="IMAGE">图片</option>
+                        <option value="PPT">PPT</option>
+                        <option value="PDF">PDF</option>
+                        <option value="AUDIO">音频</option>
+                    </select>
+                    <select id="mediaTagFilter" onchange="filterMedia()">
+                        <option value="">全部标签</option>
+                    </select>
+                    <input type="text" id="mediaSearch" placeholder="搜索媒体..." oninput="filterMedia()">
+                </div>
+                
+                <!-- 媒体网格 -->
+                <div id="mediaGrid" class="media-grid">
+                    <!-- 媒体项将通过JS动态加载 -->
+                </div>
+                
+                <!-- 上传区域 -->
+                <div id="uploadArea" class="upload-area" style="display: none;">
+                    <div class="upload-dropzone" id="dropzone">
+                        <p>拖拽文件到此处，或点击选择文件</p>
+                        <p class="hint">支持格式：视频、图片、PPT、PDF、音频</p>
+                        <input type="file" id="fileInput" multiple accept="video/*,image/*,.ppt,.pptx,.pdf,audio/*" style="display: none;">
+                    </div>
+                    <div id="uploadProgress" class="upload-progress"></div>
+                </div>
+            </section>
+
+            <!-- 标签页面 -->
+            <section id="tags" class="page">
+                <div class="page-header">
+                    <h2>标签管理</h2>
+                    <button class="btn btn-primary" onclick="showAddTagModal()">新建标签</button>
+                </div>
+                
+                <div id="tagList" class="tag-list">
+                    <!-- 标签将通过JS动态加载 -->
+                </div>
+            </section>
+
+            <!-- 播放列表页面 -->
+            <section id="playlists" class="page">
+                <div class="page-header">
+                    <h2>播放列表</h2>
+                    <button class="btn btn-primary" onclick="showAddPlaylistModal()">新建播放列表</button>
+                </div>
+                
+                <div id="playlistList" class="playlist-list">
+                    <!-- 播放列表将通过JS动态加载 -->
+                </div>
+            </section>
+
+            <!-- 定时任务页面 -->
+            <section id="tasks" class="page">
+                <div class="page-header">
+                    <h2>定时任务</h2>
+                    <button class="btn btn-primary" onclick="showAddTaskModal()">新建任务</button>
+                </div>
+                
+                <div id="taskList" class="task-list">
+                    <!-- 任务将通过JS动态加载 -->
+                </div>
+            </section>
+
+            <!-- 设置页面 -->
+            <section id="settings" class="page">
+                <div class="page-header">
+                    <h2>系统设置</h2>
+                </div>
+                
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label>图片显示间隔（秒）</label>
+                        <input type="number" id="imageInterval" value="5" min="1" max="60">
+                    </div>
+                    <div class="form-group">
+                        <label>PPT显示间隔（秒）</label>
+                        <input type="number" id="pptInterval" value="10" min="1" max="60">
+                    </div>
+                    <div class="form-group">
+                        <label>PDF显示间隔（秒）</label>
+                        <input type="number" id="pdfInterval" value="10" min="1" max="60">
+                    </div>
+                    <div class="form-group">
+                        <label>转场时长（毫秒）</label>
+                        <input type="number" id="transitionDuration" value="500" min="100" max="2000">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+                </div>
+                
+                <div class="system-info">
+                    <h3>系统信息</h3>
+                    <div id="systemInfo"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/media.js"></script>
+    <script src="js/tag.js"></script>
+    <script src="js/playlist.js"></script>
+    <script src="js/task.js"></script>
+    <script src="js/upload.js"></script>
+</body>
+</html>
