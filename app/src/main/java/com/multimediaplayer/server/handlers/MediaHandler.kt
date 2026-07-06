@@ -211,7 +211,7 @@ class MediaHandler(
         }
         return NanoHTTPD.newFixedLengthResponse(
             NanoHTTPD.Response.Status.OK,
-            "application/json",
+            "application/json; charset=utf-8",
             json.toString()
         )
     }
@@ -223,6 +223,6 @@ class MediaHandler(
         val json = JsonObject().apply {
             addProperty("error", message)
         }
-        return NanoHTTPD.newFixedLengthResponse(status, "application/json", json.toString())
+        return NanoHTTPD.newFixedLengthResponse(status, "application/json; charset=utf-8", json.toString())
     }
 }

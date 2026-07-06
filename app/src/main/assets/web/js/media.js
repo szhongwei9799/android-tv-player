@@ -70,10 +70,15 @@ async function loadMediaTagsForEdit(id) {
 async function saveMedia(id) {
     const name = document.getElementById('editMediaName').value.trim();
     if (!name) { showToast('请输入名称', 'error'); return; }
-    const t = Array.from(document.querySelectorAll('#editMediaTags input:checked')).map(c => parseInt(c.value));
+    const checkedTagIds = Array.from(document.querySelectorAll('#editMediaTags input:checked')).map(c => parseInt(c.value));
     try {
         await utils.request(`/media/${id}`, { method: 'PUT', body: JSON.stringify({ name }) });
-        for (const ti of t) { try { await utils.request(`/media/${id}/tags`, { method: 'POST', body: JSON.stringify({ tagId: ti }) }); } catch(_) {} }
+        const r = await utils.request(`/media/${id}/tags`);
+        const currentTagIds = (r.data || []).map(t => t.id);
+        const toAdd = checkedTagIds.filter(ti => !currentTagIds.includes(ti));
+        const toRemove = currentTagIds.filter(ti => !checkedTagIds.includes(ti));
+        for (const ti of toRemove) { try { await utils.request(`/media/${id}/tags/${ti}`, { method: 'DELETE' }); } catch(_) {} }
+        for (const ti of toAdd) { try { await utils.request(`/media/${id}/tags`, { method: 'POST', body: JSON.stringify({ tagId: ti }) }); } catch(_) {} }
         closeModal(); loadMediaList(); showToast('保存成功');
     } catch (e) { showToast('保存失败: ' + e.message, 'error'); }
 }
@@ -108,6 +113,37 @@ async function loadTagsForFilter() {
         const tags = r.data || [];
         document.getElementById('mediaTagFilter').innerHTML = '<option value="">全部标签</option>' + tags.map(t => `<option value="${t.id}">${escHtml(t.name)}</option>`).join('');
     } catch (_) {}
+}
+
+async function batchTagMedia() {
+    if (!selectedMediaIds.size) return;
+    try {
+        const r = await utils.request('/tags');
+        const tags = r.data || [];
+        if (!tags.length) { showToast('暂无标签', 'error'); return; }
+        showModal('批量分配标签', 
+            `<div class="field"><label>已选择 ${selectedMediaIds.size} 个媒体</label>
+            <div class="check-group" id="batchTagCheckboxes">${
+                tags.map(t => `<label><input type="checkbox" value="${t.id}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${t.color}"></span>${escHtml(t.name)}</label>`).join('')
+            }</div></div>
+            <button class="btn btn-primary" onclick="applyBatchTags()" style="width:100%">应用</button>`);
+        window._batchTagIds = null;
+    } catch(e) { showToast('加载标签失败', 'error'); }
+}
+
+async function applyBatchTags() {
+    const tagIds = Array.from(document.querySelectorAll('#batchTagCheckboxes input:checked')).map(c => parseInt(c.value));
+    if (!tagIds.length) { showToast('请选择标签', 'error'); return; }
+    closeModal();
+    let ok = 0, fail = 0;
+    for (const mid of selectedMediaIds) {
+        for (const ti of tagIds) {
+            try { await utils.request(`/media/${mid}/tags`, { method: 'POST', body: JSON.stringify({ tagId: ti }) }); ok++; }
+            catch(_) { fail++; }
+        }
+    }
+    selectedMediaIds.clear(); loadMediaList(); updateMediaControls();
+    showToast(`分配完成: ${ok} 成功, ${fail} 失败`);
 }
 
 function showUploadModal() {

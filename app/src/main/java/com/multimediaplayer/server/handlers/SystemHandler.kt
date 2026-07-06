@@ -132,7 +132,7 @@ class SystemHandler(
         }
         return NanoHTTPD.newFixedLengthResponse(
             NanoHTTPD.Response.Status.OK,
-            "application/json",
+            "application/json; charset=utf-8",
             json.toString()
         )
     }
@@ -144,6 +144,6 @@ class SystemHandler(
         val json = JsonObject().apply {
             addProperty("error", message)
         }
-        return NanoHTTPD.newFixedLengthResponse(status, "application/json", json.toString())
+        return NanoHTTPD.newFixedLengthResponse(status, "application/json; charset=utf-8", json.toString())
     }
 }
