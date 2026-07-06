@@ -5,6 +5,7 @@ import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.*
 import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class PlaylistHandler(
@@ -13,12 +14,12 @@ class PlaylistHandler(
     private val gson = Gson()
     
     fun getPlaylistList(): NanoHTTPD.Response {
-        val playlists: List<Playlist> = runBlocking { database.playlistDao().getAllPlaylists() }
+        val playlists: List<Playlist> = runBlocking { database.playlistDao().getAllPlaylists().first() }
         
         // 为每个播放列表添加媒体数量
         val playlistsWithCount = runBlocking {
             playlists.map { playlist ->
-                val count = runBlocking { database.playlistDao().getPlaylistItemCount(playlist.id) }
+                val count = database.playlistDao().getPlaylistItemCount(playlist.id)
                 PlaylistWithCount(
                     playlist.id,
                     playlist.name,

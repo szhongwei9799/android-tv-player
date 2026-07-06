@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.utils.NetworkUtils
 import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -27,13 +28,13 @@ class SystemHandler(
             addProperty("ipAddress", NetworkUtils.getDeviceIpAddress(context))
             addProperty("serverPort", 8080)
             
-            val mediaCount = runBlocking { database.mediaDao().getMediaCount() }
+            val mediaCount = runBlocking { database.mediaDao().getMediaCount().first() }
             addProperty("mediaCount", mediaCount)
             
-            val playlistCount = runBlocking { database.playlistDao().getPlaylistCount() }
+            val playlistCount = runBlocking { database.playlistDao().getPlaylistCount().first() }
             addProperty("playlistCount", playlistCount)
             
-            val taskCount = runBlocking { database.taskDao().getTaskCount() }
+            val taskCount = runBlocking { database.taskDao().getTaskCount().first() }
             addProperty("taskCount", taskCount)
             
             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())

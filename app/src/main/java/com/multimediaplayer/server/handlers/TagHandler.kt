@@ -6,6 +6,7 @@ import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.MediaTagCrossRef
 import com.multimediaplayer.data.models.Tag
 import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class TagHandler(
@@ -14,7 +15,7 @@ class TagHandler(
     private val gson = Gson()
     
     fun getTagList(): NanoHTTPD.Response {
-        val tags = runBlocking { database.tagDao().getAllTags() }
+        val tags: List<Tag> = runBlocking { database.tagDao().getAllTags().first() }
         
         // 为每个标签添加媒体数量
         val tagsWithCount = runBlocking {
@@ -28,7 +29,7 @@ class TagHandler(
     }
     
     fun getMediaTags(mediaId: Long): NanoHTTPD.Response {
-        val tags = runBlocking { database.tagDao().getTagsForMedia(mediaId) }
+        val tags = runBlocking { database.tagDao().getTagsForMedia(mediaId).first() }
         return successResponse(tags)
     }
     

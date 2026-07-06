@@ -79,6 +79,12 @@ dependencies {
     implementation("org.apache.poi:poi:5.2.5")
     implementation("org.apache.poi:poi-ooxml:5.2.5")
     
+    // QR Code
+    implementation("com.google.zxing:core:3.5.3")
+
+    // POI Scratchpad (HSLF for .ppt)
+    implementation("org.apache.poi:poi-scratchpad:5.2.5")
+
     // 图片加载
     implementation("io.coil-kt:coil-compose:2.5.0")
     

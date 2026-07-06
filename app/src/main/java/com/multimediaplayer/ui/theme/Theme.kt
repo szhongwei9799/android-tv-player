@@ -1,6 +1,7 @@
 package com.multimediaplayer.ui.theme
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.*
 
 private val DarkColorScheme = darkColorScheme(

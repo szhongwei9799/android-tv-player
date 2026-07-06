@@ -3,7 +3,11 @@ package com.multimediaplayer.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.SkipNext
+import androidx.compose.material.icons.automirrored.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +67,7 @@ fun PlayerControls(
         ) {
             // 返回按钮
             ControlButton(
-                icon = Icons.Default.ArrowBack,
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
                 onClick = onBack,
                 contentDescription = "返回"
             )
@@ -72,7 +76,7 @@ fun PlayerControls(
             
             // 上一个
             ControlButton(
-                icon = Icons.Default.SkipPrevious,
+                icon = Icons.AutoMirrored.Filled.SkipPrevious,
                 onClick = onPrevious,
                 contentDescription = "上一个",
                 enabled = currentIndex > 0
@@ -82,7 +86,7 @@ fun PlayerControls(
             
             // 播放/暂停
             ControlButton(
-                icon = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 onClick = onPlayPause,
                 contentDescription = if (isPlaying) "暂停" else "播放",
                 size = 64
@@ -92,7 +96,7 @@ fun PlayerControls(
             
             // 下一个
             ControlButton(
-                icon = Icons.Default.SkipNext,
+                icon = Icons.AutoMirrored.Filled.SkipNext,
                 onClick = onNext,
                 contentDescription = "下一个",
                 enabled = currentIndex < totalItems - 1

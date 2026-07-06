@@ -20,6 +20,7 @@ import com.multimediaplayer.data.models.Media
 import com.multimediaplayer.data.models.MediaType
 import com.multimediaplayer.utils.PdfRendererHelper
 import com.multimediaplayer.utils.PptRendererHelper
+import androidx.compose.material3.CircularProgressIndicator
 import java.io.File
 
 @Composable
