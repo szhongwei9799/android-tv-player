@@ -33,18 +33,14 @@ class TaskReceiver : BroadcastReceiver() {
             // 执行任务
             when (taskType) {
                 TaskType.PLAY.name -> {
-                    // 发送播放广播
                     val playIntent = Intent("com.multimediaplayer.PLAY").apply {
                         putExtra("playlist_id", playlistId)
-                        setPackage(context.packageName)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
-                    context.sendBroadcast(playIntent)
+                    context.startActivity(playIntent)
                 }
                 TaskType.STOP.name -> {
-                    // 发送停止广播
-                    val stopIntent = Intent("com.multimediaplayer.STOP").apply {
-                        setPackage(context.packageName)
-                    }
+                    val stopIntent = Intent("com.multimediaplayer.STOP")
                     context.sendBroadcast(stopIntent)
                 }
                 TaskType.POWER_OFF.name -> {

@@ -1,7 +1,6 @@
 package com.multimediaplayer.server.handlers
 
 import android.content.Context
-import android.net.Uri
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase

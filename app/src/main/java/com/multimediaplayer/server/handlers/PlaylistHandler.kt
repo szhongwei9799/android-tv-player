@@ -1,5 +1,7 @@
 package com.multimediaplayer.server.handlers
 
+import android.content.Context
+import android.content.Intent
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase
@@ -9,7 +11,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class PlaylistHandler(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val context: Context
 ) {
     private val gson = Gson()
     
@@ -197,11 +200,20 @@ class PlaylistHandler(
         val playlist = runBlocking { database.playlistDao().getPlaylistById(id) }
             ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
         
-        // 返回播放列表信息，让TV端开始播放
+        try {
+            val intent = Intent("com.multimediaplayer.PLAY").apply {
+                putExtra("playlist_id", playlist.id)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            return errorResponse("Failed to start playback: ${e.message}")
+        }
+        
         return successResponse(mapOf(
             "playlistId" to playlist.id,
             "name" to playlist.name,
-            "message" to "Playlist ready to play"
+            "message" to "Playback started"
         ))
     }
     

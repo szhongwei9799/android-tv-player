@@ -16,7 +16,7 @@ class ApiRouter(
     private val gson = Gson()
     private val mediaHandler = MediaHandler(database, context)
     private val tagHandler = TagHandler(database)
-    private val playlistHandler = PlaylistHandler(database)
+    private val playlistHandler = PlaylistHandler(database, context)
     private val taskHandler = TaskHandler(database)
     private val streamHandler = StreamHandler(database, context)
     private val systemHandler = SystemHandler(database, context)

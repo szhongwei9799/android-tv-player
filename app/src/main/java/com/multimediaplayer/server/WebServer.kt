@@ -69,11 +69,19 @@ class WebServer(
     private fun serveStaticFile(assetPath: String, contentType: String): Response {
         return try {
             val inputStream = context.assets.open(assetPath)
-            val response = newChunkedResponse(Response.Status.OK, contentType, inputStream)
-            addCorsHeaders(response)
-            response
+            if (contentType.startsWith("text/") || contentType.contains("javascript") || contentType.contains("json")) {
+                val text = inputStream.bufferedReader(charset = Charsets.UTF_8).readText()
+                inputStream.close()
+                val response = newFixedLengthResponse(Response.Status.OK, contentType, text)
+                addCorsHeaders(response)
+                response
+            } else {
+                val response = newChunkedResponse(Response.Status.OK, contentType, inputStream)
+                addCorsHeaders(response)
+                response
+            }
         } catch (e: Exception) {
-            newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "File not found")
+            newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain; charset=utf-8", "File not found")
         }
     }
     
