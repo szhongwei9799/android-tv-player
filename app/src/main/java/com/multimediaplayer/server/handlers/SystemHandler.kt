@@ -96,8 +96,8 @@ class SystemHandler(
         // TODO: 返回当前播放状态
         val state = JsonObject().apply {
             addProperty("isPlaying", false)
-            addProperty("currentMediaId", null)
-            addProperty("playlistId", null)
+            addProperty("currentMediaId", (null as String?))
+            addProperty("playlistId", (null as String?))
         }
         return successResponse(state)
     }
