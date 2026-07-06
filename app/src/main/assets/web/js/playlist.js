@@ -111,7 +111,14 @@ async function removeFromPlaylist(pid, mid) {
     catch(e) { showToast('移除失败: '+e.message,'error'); }
 }
 
-function playPlaylist(id) { showToast('播放命令已发送'); }
+async function playPlaylist(id) {
+    try {
+        await utils.request(`/playlists/${id}/play`, { method: 'POST' });
+        showToast('播放指令已发送');
+    } catch(e) {
+        showToast('播放失败: ' + e.message, 'error');
+    }
+}
 
 async function deletePlaylist(id) {
     if (!await showConfirm('确定删除此播放列表？媒体文件不会被删除。')) return;
