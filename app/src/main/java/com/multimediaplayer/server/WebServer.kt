@@ -105,7 +105,7 @@ class WebServer(
             
             val outputStream = java.io.ByteArrayOutputStream()
             qrBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, outputStream)
-            val inputStream = ByteArrayInputStream(outputStream.toByteArray())
+            val inputStream = java.io.ByteArrayInputStream(outputStream.toByteArray())
             
             val response = newChunkedResponse(Response.Status.OK, "image/png", inputStream)
             addCorsHeaders(response)
@@ -115,7 +115,7 @@ class WebServer(
         }
     }
     
-    private fun addCorsHeaders(response: Response) {
+    private fun addCorsHeaders(response: Response): Response {
         response.addHeader("Access-Control-Allow-Origin", "*")
         response.addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         response.addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")

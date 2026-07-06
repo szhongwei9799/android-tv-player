@@ -34,7 +34,7 @@ fun TransitionEffect(
             
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn() + fadeOut(),
+                enter = fadeIn(),
                 modifier = modifier
             ) {
                 content()

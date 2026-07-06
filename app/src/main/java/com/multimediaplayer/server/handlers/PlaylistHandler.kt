@@ -13,12 +13,12 @@ class PlaylistHandler(
     private val gson = Gson()
     
     fun getPlaylistList(): NanoHTTPD.Response {
-        val playlists = runBlocking { database.playlistDao().getAllPlaylists() }
+        val playlists: List<Playlist> = runBlocking { database.playlistDao().getAllPlaylists() }
         
         // 为每个播放列表添加媒体数量
         val playlistsWithCount = runBlocking {
             playlists.map { playlist ->
-                val count = database.playlistDao().getPlaylistItemCount(playlist.id)
+                val count = runBlocking { database.playlistDao().getPlaylistItemCount(playlist.id) }
                 PlaylistWithCount(
                     playlist.id,
                     playlist.name,
