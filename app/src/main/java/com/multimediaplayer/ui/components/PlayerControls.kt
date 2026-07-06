@@ -3,11 +3,11 @@ package com.multimediaplayer.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.SkipNext
-import androidx.compose.material.icons.automirrored.filled.SkipPrevious
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +67,7 @@ fun PlayerControls(
         ) {
             // 返回按钮
             ControlButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                icon = Icons.Filled.ArrowBack,
                 onClick = onBack,
                 contentDescription = "返回"
             )
@@ -76,7 +76,7 @@ fun PlayerControls(
             
             // 上一个
             ControlButton(
-                icon = Icons.AutoMirrored.Filled.SkipPrevious,
+                icon = Icons.Filled.SkipPrevious,
                 onClick = onPrevious,
                 contentDescription = "上一个",
                 enabled = currentIndex > 0
@@ -96,7 +96,7 @@ fun PlayerControls(
             
             // 下一个
             ControlButton(
-                icon = Icons.AutoMirrored.Filled.SkipNext,
+                icon = Icons.Filled.SkipNext,
                 onClick = onNext,
                 contentDescription = "下一个",
                 enabled = currentIndex < totalItems - 1

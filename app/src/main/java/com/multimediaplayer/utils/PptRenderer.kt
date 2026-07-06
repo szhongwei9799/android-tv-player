@@ -86,11 +86,12 @@ object PptRendererHelper {
         }
         
         val slide = slideshow.slides[slideIndex] as HSLFSlide
-        val dimension = slideshow.pageSize
+        val pageWidth = 960.0
+        val pageHeight = 540.0
         
         // 创建位图
-        val width = minOf(dimension.width.toInt(), maxWidth)
-        val height = minOf(dimension.height.toInt(), maxHeight)
+        val width = minOf(pageWidth.toInt(), maxWidth)
+        val height = minOf(pageHeight.toInt(), maxHeight)
         
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -120,11 +121,12 @@ object PptRendererHelper {
         }
         
         val slide = slideshow.slides[slideIndex] as XSLFSlide
-        val dimension = slideshow.pageSize
+        val pageWidth = 960.0
+        val pageHeight = 540.0
         
         // 创建位图
-        val width = minOf(dimension.width.toInt(), maxWidth)
-        val height = minOf(dimension.height.toInt(), maxHeight)
+        val width = minOf(pageWidth.toInt(), maxWidth)
+        val height = minOf(pageHeight.toInt(), maxHeight)
         
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
