@@ -125,10 +125,10 @@ class WebServer(
     private fun getMimeType(filePath: String): String {
         val extension = filePath.substringAfterLast('.', "").lowercase()
         return when (extension) {
-            "html" -> "text/html"
-            "css" -> "text/css"
-            "js" -> "application/javascript"
-            "json" -> "application/json"
+            "html" -> "text/html; charset=utf-8"
+            "css" -> "text/css; charset=utf-8"
+            "js" -> "application/javascript; charset=utf-8"
+            "json" -> "application/json; charset=utf-8"
             "png" -> "image/png"
             "jpg", "jpeg" -> "image/jpeg"
             "gif" -> "image/gif"

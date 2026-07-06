@@ -5,9 +5,14 @@ import android.net.Uri
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase
-import com.multimediaplayer.data.models.*
+import com.multimediaplayer.data.models.Media
+import com.multimediaplayer.data.models.MediaSource
+import com.multimediaplayer.data.models.MediaTagCrossRef
+import com.multimediaplayer.data.models.MediaType
+import com.multimediaplayer.data.models.Tag
 import com.multimediaplayer.utils.FileUtils
 import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -32,24 +37,24 @@ class MediaHandler(
                         null
                     }
                     if (mediaType != null) {
-                        database.mediaDao().getMediaByType(mediaType)
+                        database.mediaDao().getMediaByType(mediaType).first()
                     } else {
-                        database.mediaDao().getAllMedia()
+                        database.mediaDao().getAllMedia().first()
                     }
                 }
                 !query.isNullOrBlank() -> {
-                    database.mediaDao().searchMedia(query)
+                    database.mediaDao().searchMedia(query).first()
                 }
                 !tagId.isNullOrBlank() -> {
                     val id = tagId.toLongOrNull()
                     if (id != null) {
-                        database.tagDao().getMediaByTagId(id)
+                        database.tagDao().getMediaByTagId(id).first()
                     } else {
-                        database.mediaDao().getAllMedia()
+                        database.mediaDao().getAllMedia().first()
                     }
                 }
                 else -> {
-                    database.mediaDao().getAllMedia()
+                    database.mediaDao().getAllMedia().first()
                 }
             }
         }
@@ -75,15 +80,7 @@ class MediaHandler(
             database.mediaDao().insertMedia(media)
         }
         
-        // 自动添加"未分类"标签
-        runBlocking {
-            val unclassifiedTag = database.tagDao().getTagByName("未分类")
-            if (unclassifiedTag != null) {
-                database.tagDao().insertMediaTagCrossRef(
-                    MediaTagCrossRef(id, unclassifiedTag.id)
-                )
-            }
-        }
+        assignUnclassifiedTag(id)
         
         return successResponse(mapOf("id" to id))
     }
@@ -169,15 +166,7 @@ class MediaHandler(
                 database.mediaDao().insertMedia(media)
             }
             
-            // 自动添加"未分类"标签
-            runBlocking {
-                val unclassifiedTag = database.tagDao().getTagByName("未分类")
-                if (unclassifiedTag != null) {
-                    database.tagDao().insertMediaTagCrossRef(
-                        MediaTagCrossRef(id, unclassifiedTag.id)
-                    )
-                }
-            }
+            assignUnclassifiedTag(id)
             
             successResponse(mapOf("id" to id, "name" to fileName))
         } catch (e: Exception) {
@@ -193,6 +182,19 @@ class MediaHandler(
     fun setMediaAudioOverlay(mediaId: Long, session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
         // TODO: 实现设置附加音频
         return successResponse()
+    }
+    
+    private fun assignUnclassifiedTag(mediaId: Long) {
+        runBlocking {
+            var unclassifiedTag = database.tagDao().getTagByName("未分类")
+            if (unclassifiedTag == null) {
+                val id = database.tagDao().insertTag(Tag(name = "未分类", color = "#999999"))
+                unclassifiedTag = database.tagDao().getTagById(id)
+            }
+            if (unclassifiedTag != null) {
+                database.tagDao().insertMediaTagCrossRef(MediaTagCrossRef(mediaId, unclassifiedTag.id))
+            }
+        }
     }
     
     private fun parseBody(session: NanoHTTPD.IHTTPSession): String {
