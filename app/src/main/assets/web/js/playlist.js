@@ -90,12 +90,14 @@ async function managePlaylistItems(id) {
     try {
         const [pr, ir, mr] = await Promise.all([utils.request(`/playlists/${id}`), utils.request(`/playlists/${id}/items`), utils.request('/media')]);
         const pl = pr.data, items = ir.data || [], allMedia = mr.data || [];
-        showModal('管理: ' + escHtml(pl.name), `<div class="field"><label>当前 (${items.length})</label>
-            <div class="scroll">${items.length ? items.map((it,i) => `<div class="item-row"><span class="idx">${i+1}</span><span class="iname">${escHtml(it.name)}</span><button class="btn btn-danger btn-sm" onclick="removeFromPlaylist(${id},${it.id})">移除</button></div>`).join('') : '<span style="color:var(--muted);font-size:12px;">暂无媒体</span>'}</div></div>
-            <div class="field"><label>添加</label><select id="addMediaSelect" style="margin-bottom:6px;">
+        const isTagBased = pl.type === 'TAG_BASED';
+        const addSection = isTagBased ? '<div class="field" style="color:var(--muted);font-size:12px;">基于标签的播放列表内容由标签动态生成，无需手动添加</div>'
+            : `<div class="field"><label>添加</label><select id="addMediaSelect" style="margin-bottom:6px;">
                 <option value="">选择媒体...</option>
                 ${allMedia.filter(m => !items.find(i=>i.id===m.id)).map(m => `<option value="${m.id}">${escHtml(m.name)}</option>`).join('')}</select>
-                <button class="btn btn-secondary" onclick="addToPlaylist(${id})" style="width:100%;">添加</button></div>`);
+                <button class="btn btn-secondary" onclick="addToPlaylist(${id})" style="width:100%;">添加</button></div>`;
+        showModal('管理: ' + escHtml(pl.name), `<div class="field"><label>当前 (${items.length})</label>
+            <div class="scroll">${items.length ? items.map((it,i) => `<div class="item-row"><span class="idx">${i+1}</span><span class="iname">${escHtml(it.name)}</span></div>`).join('') : '<span style="color:var(--muted);font-size:12px;">暂无媒体</span>'}</div></div>${addSection}`);
     } catch(e) { showToast('加载失败: '+e.message,'error'); }
 }
 

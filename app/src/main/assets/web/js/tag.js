@@ -18,6 +18,7 @@ function renderTagList() {
         <div class="meta">${t.mediaCount||0} 个媒体</div>
         <div class="actions">
             <button class="btn-ghost" onclick="viewTagMedia(${t.id})">查看媒体</button>
+            <button class="btn-ghost" onclick="addMediaToTag(${t.id})">+ 添加媒体</button>
             <button class="btn-ghost" onclick="editTag(${t.id})">编辑</button>
             <button class="btn btn-danger btn-sm" onclick="deleteTag(${t.id})">删除</button>
         </div>
@@ -26,22 +27,49 @@ function renderTagList() {
 
 async function viewTagMedia(id) {
     try {
-        const [tr, mr] = await Promise.all([
+        const [tr, mr, ar] = await Promise.all([
             utils.request(`/tags`),
-            utils.request(`/media?tagId=${id}`)
+            utils.request(`/media?tagId=${id}`),
+            utils.request(`/media`)
         ]);
         const tag = (tr.data || []).find(t => t.id === id);
-        const media = mr.data || [];
+        const tagged = mr.data || [];
+        const allMedia = ar.data || [];
+        const untagged = allMedia.filter(m => !tagged.find(tm => tm.id === m.id));
         showModal('标签: ' + escHtml(tag ? tag.name : ''), 
-            `<div class="field"><label>媒体列表 (${media.length})</label>
-            <div class="scroll" style="max-height:300px">${
-                media.length ? media.map(m => `<div class="item-row"><span>${utils.mediaIcon(m.type)}</span><span style="margin-left:6px">${escHtml(m.name)}</span></div>`).join('')
+            `<div class="field"><label>已标记媒体 (${tagged.length})</label>
+            <div class="scroll" style="max-height:200px">${
+                tagged.length ? tagged.map(m => `<div class="item-row"><span>${utils.mediaIcon(m.type)}</span><span style="margin-left:6px;flex:1">${escHtml(m.name)}</span><button class="btn btn-danger btn-sm" onclick="removeMediaTag(${m.id},${id},'tag')">移除</button></div>`).join('')
                 : '<span style="color:var(--muted);font-size:12px;">暂无媒体</span>'
             }</div></div>
-            <button class="btn btn-primary" onclick="closeModal()" style="width:100%">关闭</button>`);
+            <div class="field"><label>添加媒体</label>
+            <select id="addMediaToTagSelect" style="margin-bottom:6px"><option value="">选择媒体...</option>${
+                untagged.map(m => `<option value="${m.id}">${escHtml(m.name)}</option>`).join('')
+            }</select>
+            <button class="btn btn-secondary" onclick="addMediaToTagAction(${id})" style="width:100%">添加</button></div>
+            <button class="btn btn-primary" onclick="closeModal()" style="width:100%;margin-top:8px">关闭</button>`);
     } catch(e) {
         showToast('加载失败: ' + e.message, 'error');
     }
+}
+
+function addMediaToTag(id) { viewTagMedia(id); }
+
+async function addMediaToTagAction(tagId) {
+    const mid = document.getElementById('addMediaToTagSelect').value;
+    if (!mid) { showToast('请选择媒体', 'error'); return; }
+    try {
+        await utils.request(`/media/${mid}/tags`, { method: 'POST', body: JSON.stringify({ tagId }) });
+        viewTagMedia(tagId); loadTagList(); showToast('添加成功');
+    } catch(e) { showToast('添加失败: ' + e.message, 'error'); }
+}
+
+async function removeMediaTag(mediaId, tagId, from) {
+    try {
+        await utils.request(`/media/${mediaId}/tags/${tagId}`, { method: 'DELETE' });
+        if (from === 'tag') viewTagMedia(tagId);
+        loadTagList(); showToast('移除成功');
+    } catch(e) { showToast('移除失败: ' + e.message, 'error'); }
 }
 
 function showAddTagModal() {

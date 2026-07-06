@@ -19,10 +19,15 @@ class PlaylistHandler(
     fun getPlaylistList(): NanoHTTPD.Response {
         val playlists: List<Playlist> = runBlocking { database.playlistDao().getAllPlaylists().first() }
         
-        // 为每个播放列表添加媒体数量
         val playlistsWithCount = runBlocking {
             playlists.map { playlist ->
-                val count = database.playlistDao().getPlaylistItemCount(playlist.id)
+                val count = if (playlist.type == PlaylistType.TAG_BASED) {
+                    val tagIds = database.playlistDao().getPlaylistTags(playlist.id).map { it.tagId }
+                    if (tagIds.isEmpty()) 0
+                    else database.tagDao().getMediaByTagIds(tagIds).first().size
+                } else {
+                    database.playlistDao().getPlaylistItemCount(playlist.id)
+                }
                 PlaylistWithCount(
                     playlist.id,
                     playlist.name,
@@ -147,11 +152,19 @@ class PlaylistHandler(
     }
     
     fun getPlaylistItems(playlistId: Long): NanoHTTPD.Response {
-        val items = runBlocking { database.playlistDao().getPlaylistItems(playlistId) }
+        val playlist = runBlocking { database.playlistDao().getPlaylistById(playlistId) }
+            ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
         
         val mediaList = runBlocking {
-            items.mapNotNull { item ->
-                database.mediaDao().getMediaById(item.mediaId)
+            if (playlist.type == PlaylistType.TAG_BASED) {
+                val tagIds = database.playlistDao().getPlaylistTags(playlistId).map { it.tagId }
+                if (tagIds.isEmpty()) emptyList()
+                else database.tagDao().getMediaByTagIds(tagIds).first()
+            } else {
+                val items = database.playlistDao().getPlaylistItems(playlistId)
+                items.mapNotNull { item ->
+                    database.mediaDao().getMediaById(item.mediaId)
+                }
             }
         }
         
@@ -218,9 +231,24 @@ class PlaylistHandler(
     }
     
     private fun parseBody(session: NanoHTTPD.IHTTPSession): String {
-        val body = HashMap<String, String>()
-        session.parseBody(body)
-        return body["postData"] ?: body["content"] ?: ""
+        return try {
+            val contentLength = session.headers["content-length"]?.toLongOrNull() ?: 0L
+            if (contentLength > 0) {
+                val inputStream = session.getInputStream()
+                val bytes = ByteArray(contentLength.toInt())
+                var total = 0
+                while (total < contentLength) {
+                    val bytesRead = inputStream.read(bytes, total, bytes.size - total)
+                    if (bytesRead < 0) break
+                    total += bytesRead
+                }
+                String(bytes, 0, total, Charsets.UTF_8)
+            } else ""
+        } catch (e: Exception) {
+            val body = HashMap<String, String>()
+            session.parseBody(body)
+            body["postData"] ?: body["content"] ?: ""
+        }
     }
     
     private fun successResponse(data: Any? = null): NanoHTTPD.Response {

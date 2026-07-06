@@ -64,6 +64,9 @@ interface PlaylistDao {
     @Query("DELETE FROM playlist_tags WHERE playlistId = :playlistId")
     suspend fun deleteAllPlaylistTags(playlistId: Long)
 
+    @Query("DELETE FROM playlist_tags WHERE tagId = :tagId")
+    suspend fun deleteAllPlaylistTagsByTagId(tagId: Long)
+
     @Query("SELECT * FROM playlist_tags WHERE playlistId = :playlistId")
     suspend fun getPlaylistTags(playlistId: Long): List<PlaylistTag>
 

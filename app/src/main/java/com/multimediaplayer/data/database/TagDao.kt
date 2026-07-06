@@ -39,6 +39,9 @@ interface TagDao {
     @Query("DELETE FROM media_tag_cross_ref WHERE mediaId = :mediaId")
     suspend fun deleteAllMediaTags(mediaId: Long)
 
+    @Query("DELETE FROM media_tag_cross_ref WHERE tagId = :tagId")
+    suspend fun deleteAllMediaTagsForTag(tagId: Long)
+
     @Query("SELECT * FROM media_tag_cross_ref WHERE mediaId = :mediaId")
     suspend fun getMediaTagRefs(mediaId: Long): List<MediaTagCrossRef>
 

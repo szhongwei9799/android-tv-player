@@ -21,12 +21,14 @@ const uploadManager = {
     uploadFile(item) {
         return new Promise(resolve => {
             item.status = 'uploading'; this.renderProgress();
-            const fd = new FormData(); fd.append('file', item.file); fd.append('filename', item.file.name);
             const xhr = new XMLHttpRequest();
             xhr.upload.addEventListener('progress', e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); this.renderProgress(); } });
-            xhr.onload = () => { item.status = xhr.status === 200 ? 'success' : 'error'; this.renderProgress(); if (item.status === 'success') loadMediaList(); resolve(); };
+            xhr.onload = () => { if (xhr.status === 200) { const r = JSON.parse(xhr.responseText); item.status = r.success ? 'success' : 'error'; } else { item.status = 'error'; } this.renderProgress(); if (item.status === 'success') loadMediaList(); else showToast('Upload failed','error'); resolve(); };
             xhr.onerror = () => { item.status = 'error'; this.renderProgress(); resolve(); };
-            xhr.open('POST', '/api/media/upload'); xhr.send(fd);
+            xhr.open('POST', '/api/media/upload');
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            xhr.setRequestHeader('X-Filename', encodeURIComponent(item.file.name));
+            xhr.send(item.file);
         });
     },
     renderProgress() {

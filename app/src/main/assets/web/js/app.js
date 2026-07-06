@@ -3,7 +3,7 @@ const API_BASE = '/api';
 const utils = {
     async request(url, options = {}) {
         const config = {
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
             ...options
         };
         if (!options.body) delete config.headers['Content-Type'];

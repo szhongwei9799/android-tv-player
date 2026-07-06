@@ -28,34 +28,33 @@ class MediaHandler(
         val tagId = queryParams["tagId"]
         
         val result = runBlocking {
-            when {
-                !type.isNullOrBlank() -> {
-                    val mediaType = try {
-                        MediaType.valueOf(type.uppercase())
-                    } catch (e: Exception) {
-                        null
-                    }
-                    if (mediaType != null) {
-                        database.mediaDao().getMediaByType(mediaType).first()
-                    } else {
-                        database.mediaDao().getAllMedia().first()
-                    }
+            var mediaList = database.mediaDao().getAllMedia().first()
+            
+            if (!type.isNullOrBlank()) {
+                val mediaType = try {
+                    MediaType.valueOf(type.uppercase())
+                } catch (e: Exception) {
+                    null
                 }
-                !query.isNullOrBlank() -> {
-                    database.mediaDao().searchMedia(query).first()
-                }
-                !tagId.isNullOrBlank() -> {
-                    val id = tagId.toLongOrNull()
-                    if (id != null) {
-                        database.tagDao().getMediaByTagId(id).first()
-                    } else {
-                        database.mediaDao().getAllMedia().first()
-                    }
-                }
-                else -> {
-                    database.mediaDao().getAllMedia().first()
+                if (mediaType != null) {
+                    mediaList = mediaList.filter { it.type == mediaType }
                 }
             }
+            
+            if (!tagId.isNullOrBlank()) {
+                val id = tagId.toLongOrNull()
+                if (id != null) {
+                    val taggedIds = database.tagDao().getMediaByTagId(id).first().map { it.id }.toSet()
+                    mediaList = mediaList.filter { it.id in taggedIds }
+                }
+            }
+            
+            if (!query.isNullOrBlank()) {
+                val q = query.lowercase()
+                mediaList = mediaList.filter { it.name.lowercase().contains(q) }
+            }
+            
+            mediaList
         }
         
         return successResponse(result)
@@ -127,35 +126,55 @@ class MediaHandler(
     
     fun uploadMedia(session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
         return try {
-            val files = HashMap<String, String>()
-            session.parseBody(files)
+            val contentType = session.headers["content-type"] ?: ""
+            val fileName: String
+            val targetFile: File
             
-            val tempFilePath = files["file"] ?: files["content"] ?: files["postData"]
-                ?: return errorResponse("No file uploaded")
-            
-            val tempFile = File(tempFilePath)
-            if (!tempFile.exists()) {
-                return errorResponse("File not found")
+            if (contentType.contains("octet-stream")) {
+                // 直接二进制上传 - 从输入流读取，避免parseBody的内存映射限制
+                fileName = java.net.URLDecoder.decode(
+                    session.headers["x-filename"] ?: "upload", "UTF-8"
+                )
+                val mediaType = FileUtils.getMediaType(fileName)
+                    ?: return errorResponse("Unsupported file type")
+                val contentLength = session.headers["content-length"]?.toLongOrNull() ?: 0L
+                val inputStream = session.getInputStream()
+                val mediaDir = FileUtils.getMediaDirectory(context)
+                targetFile = File(mediaDir, "${System.currentTimeMillis()}_$fileName")
+                targetFile.outputStream().use { out ->
+                    val buffer = ByteArray(8192)
+                    var totalBytesRead = 0L
+                    while (totalBytesRead < contentLength) {
+                        val toRead = minOf(buffer.size.toLong(), contentLength - totalBytesRead).toInt()
+                        val bytesRead = inputStream.read(buffer, 0, toRead)
+                        if (bytesRead < 0) break
+                        out.write(buffer, 0, bytesRead)
+                        totalBytesRead += bytesRead
+                    }
+                }
+            } else {
+                // 传统multipart上传（兼容旧客户端）
+                val files = HashMap<String, String>()
+                session.parseBody(files)
+                val tempFilePath = files["file"]
+                    ?: return errorResponse("No file uploaded")
+                val tempFile = File(tempFilePath)
+                if (!tempFile.exists()) {
+                    return errorResponse("File not found")
+                }
+                fileName = session.headers["x-filename"] ?:
+                    session.parms["filename"] ?:
+                    tempFile.name
+                val mediaType = FileUtils.getMediaType(fileName)
+                    ?: return errorResponse("Unsupported file type")
+                val mediaDir = FileUtils.getMediaDirectory(context)
+                targetFile = File(mediaDir, "${System.currentTimeMillis()}_$fileName")
+                tempFile.copyTo(targetFile, overwrite = true)
             }
             
-            // 获取原始文件名
-            val fileName = session.headers["x-filename"] ?: 
-                session.parms["filename"] ?: 
-                tempFile.name
-            
-            // 确定媒体类型
-            val mediaType = FileUtils.getMediaType(fileName)
-                ?: return errorResponse("Unsupported file type")
-            
-            // 移动文件到媒体目录
-            val mediaDir = FileUtils.getMediaDirectory(context)
-            val targetFile = File(mediaDir, "${System.currentTimeMillis()}_$fileName")
-            tempFile.copyTo(targetFile, overwrite = true)
-            
-            // 创建媒体记录
             val media = Media(
                 name = fileName,
-                type = mediaType,
+                type = FileUtils.getMediaType(fileName)!!,
                 source = MediaSource.LOCAL,
                 path = targetFile.absolutePath,
                 fileSize = targetFile.length()
@@ -197,9 +216,26 @@ class MediaHandler(
     }
     
     private fun parseBody(session: NanoHTTPD.IHTTPSession): String {
-        val body = HashMap<String, String>()
-        session.parseBody(body)
-        return body["postData"] ?: body["content"] ?: ""
+        return try {
+            val contentLength = session.headers["content-length"]?.toLongOrNull() ?: 0L
+            if (contentLength > 0) {
+                val inputStream = session.getInputStream()
+                val bytes = ByteArray(contentLength.toInt())
+                var total = 0
+                while (total < contentLength) {
+                    val bytesRead = inputStream.read(bytes, total, bytes.size - total)
+                    if (bytesRead < 0) break
+                    total += bytesRead
+                }
+                String(bytes, 0, total, Charsets.UTF_8)
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            val body = HashMap<String, String>()
+            session.parseBody(body)
+            body["postData"] ?: body["content"] ?: ""
+        }
     }
     
     private fun successResponse(data: Any? = null): NanoHTTPD.Response {

@@ -89,7 +89,9 @@ class TagHandler(
         }
         
         runBlocking {
-            // 删除标签，但保留媒体
+            // 删除标签关联及标签本身
+            database.tagDao().deleteAllMediaTagsForTag(id)
+            database.playlistDao().deleteAllPlaylistTagsByTagId(id)
             database.tagDao().deleteTag(tag)
         }
         
@@ -128,9 +130,24 @@ class TagHandler(
     }
     
     private fun parseBody(session: NanoHTTPD.IHTTPSession): String {
-        val body = HashMap<String, String>()
-        session.parseBody(body)
-        return body["postData"] ?: body["content"] ?: ""
+        return try {
+            val contentLength = session.headers["content-length"]?.toLongOrNull() ?: 0L
+            if (contentLength > 0) {
+                val inputStream = session.getInputStream()
+                val bytes = ByteArray(contentLength.toInt())
+                var total = 0
+                while (total < contentLength) {
+                    val bytesRead = inputStream.read(bytes, total, bytes.size - total)
+                    if (bytesRead < 0) break
+                    total += bytesRead
+                }
+                String(bytes, 0, total, Charsets.UTF_8)
+            } else ""
+        } catch (e: Exception) {
+            val body = HashMap<String, String>()
+            session.parseBody(body)
+            body["postData"] ?: body["content"] ?: ""
+        }
     }
     
     private fun successResponse(data: Any? = null): NanoHTTPD.Response {

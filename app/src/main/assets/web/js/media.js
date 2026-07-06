@@ -92,19 +92,29 @@ async function deleteSelectedMedia() {
     } catch (e) { showToast('删除失败: ' + e.message, 'error'); }
 }
 
-function filterMedia() {
+async function filterMedia() {
     const type = document.getElementById('mediaTypeFilter').value;
+    const tagId = document.getElementById('mediaTagFilter').value;
     const q = document.getElementById('mediaSearch').value.toLowerCase();
-    let f = mediaList;
-    if (type) f = f.filter(m => m.type === type);
-    if (q) f = f.filter(m => m.name.toLowerCase().includes(q));
     const g = document.getElementById('mediaGrid');
-    if (!f.length) { g.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>没有匹配的媒体</p></div>'; return; }
-    g.innerHTML = f.map(m => `<div class="media-item ${selectedMediaIds.has(m.id)?'selected':''}" onclick="selectMedia(${m.id})" ondblclick="editMedia(${m.id})">
-        <div class="media-thumb">${m.thumbnail ? `<img src="${m.thumbnail}" alt="">` : utils.mediaIcon(m.type)}</div>
-        <div class="media-info"><div class="media-name" title="${escHtml(m.name)}">${escHtml(m.name)}</div>
-        <div class="media-meta">${utils.mediaLabel(m.type)} · ${utils.formatFileSize(m.fileSize)}</div></div>
-    </div>`).join('');
+    g.innerHTML = '<div class="loading">筛选...</div>';
+    try {
+        let url = '/media';
+        const params = [];
+        if (type) params.push(`type=${type}`);
+        if (tagId) params.push(`tagId=${tagId}`);
+        if (params.length) url += '?' + params.join('&');
+        const r = await utils.request(url);
+        let f = r.data || [];
+        if (q) f = f.filter(m => m.name.toLowerCase().includes(q));
+        if (!f.length) { g.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>没有匹配的媒体</p></div>'; return; }
+        g.innerHTML = f.map(m => `<div class="media-item ${selectedMediaIds.has(m.id)?'selected':''}" onclick="selectMedia(${m.id})" ondblclick="editMedia(${m.id})">
+            <div class="media-thumb">${m.thumbnail ? `<img src="${m.thumbnail}" alt="">` : utils.mediaIcon(m.type)}</div>
+            <div class="media-info"><div class="media-name" title="${escHtml(m.name)}">${escHtml(m.name)}</div>
+            <div class="media-meta">${utils.mediaLabel(m.type)} · ${utils.formatFileSize(m.fileSize)}</div></div>
+        </div>`).join('');
+        f.forEach(m => loadMediaTags(m.id));
+    } catch (e) { g.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`; }
 }
 
 async function loadTagsForFilter() {
