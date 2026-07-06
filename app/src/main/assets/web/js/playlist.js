@@ -1,341 +1,203 @@
-// 播放列表管理
-
 let playlistList = [];
 
-// 加载播放列表
 async function loadPlaylistList() {
+    const el = document.getElementById('playlistList');
+    el.innerHTML = '<div class="loading">加载播放列表...</div>';
     try {
-        const response = await utils.request('/playlists');
-        if (response.success) {
-            playlistList = response.data || [];
+        const res = await utils.request('/playlists');
+        playlistList = res.data || [];
+        if (playlistList.length === 0) {
+            el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>暂无播放列表</p><p style="font-size:12px;margin-top:4px;">点击右上角「新建播放列表」创建</p></div>';
+        } else {
             renderPlaylistList();
         }
-    } catch (error) {
-        console.error('加载播放列表失败:', error);
+    } catch (e) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>加载失败: ${e.message}</p></div>`;
+        showToast(e.message, 'error');
     }
 }
 
-// 渲染播放列表
 function renderPlaylistList() {
-    const container = document.getElementById('playlistList');
-    container.innerHTML = playlistList.map(playlist => `
+    const el = document.getElementById('playlistList');
+    el.innerHTML = playlistList.map(p => `
         <div class="playlist-item">
             <div class="playlist-icon">▶</div>
             <div class="playlist-info">
-                <div class="playlist-name">${playlist.name}</div>
-                <div class="playlist-meta">
-                    ${playlist.type === 'TAG_BASED' ? '基于标签' : '手动列表'} | 
-                    ${playlist.mediaCount || 0} 个媒体 | 
-                    转场: ${getTransitionLabel(playlist.transitionEffect)}
-                </div>
+                <div class="playlist-name">${escHtml(p.name)}</div>
+                <div class="playlist-meta">${p.type === 'TAG_BASED' ? '基于标签' : '手动列表'} · ${p.mediaCount || 0} 个媒体 · 转场: ${getTransitionLabel(p.transitionEffect)}</div>
             </div>
             <div class="playlist-actions">
-                <button class="btn btn-primary btn-small" onclick="playPlaylist(${playlist.id})">播放</button>
-                <button class="btn btn-secondary btn-small" onclick="editPlaylist(${playlist.id})">编辑</button>
-                <button class="btn btn-secondary btn-small" onclick="managePlaylistItems(${playlist.id})">管理</button>
-                <button class="btn btn-danger btn-small" onclick="deletePlaylist(${playlist.id})">删除</button>
+                <button class="btn btn-primary btn-sm" onclick="playPlaylist(${p.id})">播放</button>
+                <button class="btn btn-ghost" onclick="editPlaylist(${p.id})">编辑</button>
+                <button class="btn btn-ghost" onclick="managePlaylistItems(${p.id})">管理</button>
+                <button class="btn btn-danger btn-sm" onclick="deletePlaylist(${p.id})">删除</button>
             </div>
         </div>
     `).join('');
 }
 
-// 获取转场效果标签
-function getTransitionLabel(transition) {
-    const labels = {
-        'NONE': '无',
-        'FADE': '淡入淡出',
-        'SLIDE_LEFT': '左滑',
-        'SLIDE_RIGHT': '右滑',
-        'SLIDE_UP': '上滑',
-        'SLIDE_DOWN': '下滑',
-        'ZOOM_IN': '放大',
-        'ZOOM_OUT': '缩小',
-        'WIPE_LEFT': '左擦除',
-        'WIPE_RIGHT': '右擦除',
-        'DISSOLVE': '溶解',
-        'BLUR': '模糊',
-        'RANDOM': '随机'
-    };
-    return labels[transition] || transition;
+function getTransitionLabel(t) {
+    return { 'NONE':'无', 'FADE':'淡入淡出', 'SLIDE_LEFT':'左滑', 'SLIDE_RIGHT':'右滑', 'SLIDE_UP':'上滑', 'SLIDE_DOWN':'下滑', 'ZOOM_IN':'放大', 'ZOOM_OUT':'缩小', 'WIPE_LEFT':'左擦除', 'WIPE_RIGHT':'右擦除', 'DISSOLVE':'溶解', 'BLUR':'模糊', 'RANDOM':'随机' }[t] || t;
 }
 
-// 显示创建播放列表模态框
 function showAddPlaylistModal() {
-    showModal(`
-        <h3>新建播放列表</h3>
-        <div class="form-group">
-            <label>播放列表名称</label>
-            <input type="text" id="playlistName" placeholder="请输入播放列表名称">
-        </div>
-        <div class="form-group">
-            <label>描述</label>
-            <input type="text" id="playlistDesc" placeholder="可选描述">
-        </div>
-        <div class="form-group">
-            <label>类型</label>
+    showModal('新建播放列表', `
+        <div class="form-row"><label>名称</label><input type="text" id="playlistName" placeholder="例如: 上午播放列表"></div>
+        <div class="form-row"><label>描述</label><input type="text" id="playlistDesc" placeholder="可选"></div>
+        <div class="form-row"><label>类型</label>
             <select id="playlistType" onchange="toggleTagSelection()">
                 <option value="MANUAL">手动列表</option>
                 <option value="TAG_BASED">基于标签</option>
             </select>
         </div>
-        <div id="tagSelection" class="form-group" style="display:none;">
-            <label>选择标签</label>
-            <div id="tagCheckboxes">加载中...</div>
-        </div>
-        <div class="form-group">
-            <label>转场效果</label>
+        <div id="tagSelection" class="form-row" style="display:none;"><label>选择标签</label><div class="modal-checkbox-group" id="tagCheckboxes">加载中...</div></div>
+        <div class="form-row"><label>转场效果</label>
             <select id="playlistTransition">
-                <option value="FADE">淡入淡出</option>
-                <option value="SLIDE_LEFT">左滑</option>
-                <option value="SLIDE_RIGHT">右滑</option>
-                <option value="ZOOM_IN">放大</option>
-                <option value="ZOOM_OUT">缩小</option>
-                <option value="DISSOLVE">溶解</option>
-                <option value="RANDOM">随机</option>
-                <option value="NONE">无</option>
+                <option value="FADE">淡入淡出</option><option value="SLIDE_LEFT">左滑</option><option value="SLIDE_RIGHT">右滑</option>
+                <option value="ZOOM_IN">放大</option><option value="ZOOM_OUT">缩小</option><option value="DISSOLVE">溶解</option>
+                <option value="RANDOM">随机</option><option value="NONE">无</option>
             </select>
         </div>
-        <div class="form-group">
-            <label>显示间隔（秒）</label>
-            <input type="number" id="playlistInterval" value="10" min="1" max="60">
-        </div>
+        <div class="form-row"><label>显示间隔（秒）</label><input type="number" id="playlistInterval" value="10" min="1" max="60"></div>
         <button class="btn btn-primary" onclick="createPlaylist()">创建</button>
     `);
 }
 
-// 切换标签选择显示
 function toggleTagSelection() {
-    const type = document.getElementById('playlistType').value;
-    const tagSelection = document.getElementById('tagSelection');
-    tagSelection.style.display = type === 'TAG_BASED' ? 'block' : 'none';
-    
-    if (type === 'TAG_BASED') {
-        loadTagsForPlaylist();
-    }
+    const show = document.getElementById('playlistType').value === 'TAG_BASED';
+    document.getElementById('tagSelection').style.display = show ? 'block' : 'none';
+    if (show) loadTagsForPlaylist();
 }
 
-// 加载标签供播放列表选择
 async function loadTagsForPlaylist() {
     try {
-        const response = await utils.request('/tags');
-        if (response.success) {
-            const tags = response.data || [];
-            document.getElementById('tagCheckboxes').innerHTML = tags.map(tag => `
-                <label style="display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer;">
-                    <input type="checkbox" value="${tag.id}">
-                    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background-color:${tag.color}"></span>
-                    ${tag.name}
-                </label>
-            `).join('');
-        }
-    } catch (error) {
-        console.error('加载标签失败:', error);
-    }
+        const res = await utils.request('/tags');
+        const tags = res.data || [];
+        document.getElementById('tagCheckboxes').innerHTML = tags.map(t =>
+            `<label><input type="checkbox" value="${t.id}"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${t.color}"></span> ${escHtml(t.name)}</label>`
+        ).join('') || '<span style="color:var(--text-muted)">暂无标签，请先创建标签</span>';
+    } catch (e) { /* silent */ }
 }
 
-// 创建播放列表
 async function createPlaylist() {
-    const name = document.getElementById('playlistName').value;
-    const description = document.getElementById('playlistDesc').value;
+    const name = document.getElementById('playlistName').value.trim();
+    if (!name) { showToast('请输入名称', 'error'); return; }
     const type = document.getElementById('playlistType').value;
     const transitionEffect = document.getElementById('playlistTransition').value;
     const defaultInterval = parseInt(document.getElementById('playlistInterval').value);
-    
-    if (!name) {
-        showToast('请输入播放列表名称', 'error');
-        return;
-    }
-    
     let tagIds = [];
     if (type === 'TAG_BASED') {
-        const checkboxes = document.querySelectorAll('#tagCheckboxes input[type="checkbox"]:checked');
-        tagIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        tagIds = Array.from(document.querySelectorAll('#tagCheckboxes input:checked')).map(c => parseInt(c.value));
     }
-    
     try {
-        await utils.request('/playlists', {
-            method: 'POST',
-            body: JSON.stringify({
-                name,
-                description,
-                type,
-                transitionEffect,
-                defaultInterval,
-                tagIds
-            })
-        });
+        await utils.request('/playlists', { method: 'POST', body: JSON.stringify({
+            name, description: document.getElementById('playlistDesc').value,
+            type, transitionEffect, defaultInterval, tagIds
+        })});
         closeModal();
         loadPlaylistList();
         showToast('创建成功');
-    } catch (error) {
-        showToast('创建失败', 'error');
+    } catch (e) {
+        showToast('创建失败: ' + e.message, 'error');
     }
 }
 
-// 编辑播放列表
 function editPlaylist(id) {
-    const playlist = playlistList.find(p => p.id === id);
-    if (!playlist) return;
-    
-    showModal(`
-        <h3>编辑播放列表</h3>
-        <div class="form-group">
-            <label>播放列表名称</label>
-            <input type="text" id="editPlaylistName" value="${playlist.name}">
+    const p = playlistList.find(x => x.id === id);
+    if (!p) return;
+    showModal('编辑播放列表', `
+        <div class="form-row"><label>名称</label><input type="text" id="editPlaylistName" value="${escHtml(p.name)}"></div>
+        <div class="form-row"><label>描述</label><input type="text" id="editPlaylistDesc" value="${escHtml(p.description || '')}"></div>
+        <div class="form-row"><label>转场效果</label>
+            <select id="editPlaylistTransition">${['FADE','SLIDE_LEFT','SLIDE_RIGHT','ZOOM_IN','ZOOM_OUT','DISSOLVE','RANDOM','NONE'].map(v =>
+                `<option value="${v}" ${p.transitionEffect===v?'selected':''}>${getTransitionLabel(v)}</option>`
+            ).join('')}</select>
         </div>
-        <div class="form-group">
-            <label>描述</label>
-            <input type="text" id="editPlaylistDesc" value="${playlist.description || ''}">
-        </div>
-        <div class="form-group">
-            <label>转场效果</label>
-            <select id="editPlaylistTransition">
-                <option value="FADE" ${playlist.transitionEffect === 'FADE' ? 'selected' : ''}>淡入淡出</option>
-                <option value="SLIDE_LEFT" ${playlist.transitionEffect === 'SLIDE_LEFT' ? 'selected' : ''}>左滑</option>
-                <option value="SLIDE_RIGHT" ${playlist.transitionEffect === 'SLIDE_RIGHT' ? 'selected' : ''}>右滑</option>
-                <option value="ZOOM_IN" ${playlist.transitionEffect === 'ZOOM_IN' ? 'selected' : ''}>放大</option>
-                <option value="ZOOM_OUT" ${playlist.transitionEffect === 'ZOOM_OUT' ? 'selected' : ''}>缩小</option>
-                <option value="DISSOLVE" ${playlist.transitionEffect === 'DISSOLVE' ? 'selected' : ''}>溶解</option>
-                <option value="RANDOM" ${playlist.transitionEffect === 'RANDOM' ? 'selected' : ''}>随机</option>
-                <option value="NONE" ${playlist.transitionEffect === 'NONE' ? 'selected' : ''}>无</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>显示间隔（秒）</label>
-            <input type="number" id="editPlaylistInterval" value="${playlist.defaultInterval}" min="1" max="60">
-        </div>
+        <div class="form-row"><label>显示间隔（秒）</label><input type="number" id="editPlaylistInterval" value="${p.defaultInterval}" min="1" max="60"></div>
         <button class="btn btn-primary" onclick="updatePlaylist(${id})">保存</button>
     `);
 }
 
-// 更新播放列表
 async function updatePlaylist(id) {
-    const name = document.getElementById('editPlaylistName').value;
-    const description = document.getElementById('editPlaylistDesc').value;
-    const transitionEffect = document.getElementById('editPlaylistTransition').value;
-    const defaultInterval = parseInt(document.getElementById('editPlaylistInterval').value);
-    
-    if (!name) {
-        showToast('请输入播放列表名称', 'error');
-        return;
-    }
-    
+    const name = document.getElementById('editPlaylistName').value.trim();
+    if (!name) { showToast('请输入名称', 'error'); return; }
     try {
-        await utils.request(`/playlists/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                name,
-                description,
-                transitionEffect,
-                defaultInterval
-            })
-        });
+        await utils.request(`/playlists/${id}`, { method: 'PUT', body: JSON.stringify({
+            name, description: document.getElementById('editPlaylistDesc').value,
+            transitionEffect: document.getElementById('editPlaylistTransition').value,
+            defaultInterval: parseInt(document.getElementById('editPlaylistInterval').value)
+        })});
         closeModal();
         loadPlaylistList();
         showToast('更新成功');
-    } catch (error) {
-        showToast('更新失败', 'error');
+    } catch (e) {
+        showToast('更新失败: ' + e.message, 'error');
     }
 }
 
-// 管理播放列表项
 async function managePlaylistItems(id) {
     try {
-        const [playlistResponse, itemsResponse, mediaResponse] = await Promise.all([
+        const [pRes, iRes, mRes] = await Promise.all([
             utils.request(`/playlists/${id}`),
             utils.request(`/playlists/${id}/items`),
             utils.request('/media')
         ]);
-        
-        if (playlistResponse.success && itemsResponse.success && mediaResponse.success) {
-            const playlist = playlistResponse.data;
-            const items = itemsResponse.data || [];
-            const allMedia = mediaResponse.data || [];
-            
-            showModal(`
-                <h3>管理播放列表: ${playlist.name}</h3>
-                <div class="form-group">
-                    <label>当前媒体 (${items.length} 项)</label>
-                    <div id="playlistItems" style="max-height:300px;overflow-y:auto;">
-                        ${items.map((item, index) => `
-                            <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#333;margin-bottom:4px;border-radius:4px;">
-                                <span style="color:#b0b0b0;">${index + 1}</span>
-                                <span style="flex:1;">${item.name}</span>
-                                <button class="btn btn-danger btn-small" onclick="removeFromPlaylist(${id}, ${item.id})">移除</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>添加媒体</label>
-                    <select id="addMediaSelect">
-                        <option value="">选择媒体...</option>
-                        ${allMedia.filter(m => !items.find(i => i.id === m.id)).map(m => `
-                            <option value="${m.id}">${m.name} (${utils.getMediaTypeLabel(m.type)})</option>
-                        `).join('')}
-                    </select>
-                    <button class="btn btn-secondary btn-small" onclick="addToPlaylist(${id})" style="margin-top:8px;">添加</button>
-                </div>
-            `);
-        }
-    } catch (error) {
-        showToast('加载失败', 'error');
+        const pl = pRes.data, items = iRes.data || [], allMedia = mRes.data || [];
+        showModal('管理播放列表: ' + escHtml(pl.name), `
+            <div class="form-row"><label>当前媒体 (${items.length} 项)</label>
+                <div class="scroll-list">${items.length === 0 ? '<span style="color:var(--text-muted);font-size:13px;">暂无媒体</span>' :
+                    items.map((item, i) => `<div class="playlist-item-row"><span class="item-index">${i+1}</span><span class="item-name">${escHtml(item.name)}</span><button class="btn btn-danger btn-sm" onclick="removeFromPlaylist(${id}, ${item.id})">移除</button></div>`
+                ).join('')}</div>
+            </div>
+            <div class="form-row"><label>添加媒体</label>
+                <select id="addMediaSelect" style="margin-bottom:8px;">
+                    <option value="">选择媒体...</option>
+                    ${allMedia.filter(m => !items.find(i => i.id === m.id)).map(m => `<option value="${m.id}">${escHtml(m.name)} (${utils.getMediaTypeLabel(m.type)})</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary" onclick="addToPlaylist(${id})" style="width:100%;">添加</button>
+            </div>
+        `);
+    } catch (e) {
+        showToast('加载失败: ' + e.message, 'error');
     }
 }
 
-// 添加媒体到播放列表
 async function addToPlaylist(playlistId) {
     const mediaId = document.getElementById('addMediaSelect').value;
-    if (!mediaId) {
-        showToast('请选择媒体', 'error');
-        return;
-    }
-    
+    if (!mediaId) { showToast('请选择媒体', 'error'); return; }
     try {
-        await utils.request(`/playlists/${playlistId}/items`, {
-            method: 'POST',
-            body: JSON.stringify({ mediaId: parseInt(mediaId) })
-        });
+        await utils.request(`/playlists/${playlistId}/items`, { method: 'POST', body: JSON.stringify({ mediaId: parseInt(mediaId) }) });
         managePlaylistItems(playlistId);
         loadPlaylistList();
         showToast('添加成功');
-    } catch (error) {
-        showToast('添加失败', 'error');
+    } catch (e) {
+        showToast('添加失败: ' + e.message, 'error');
     }
 }
 
-// 从播放列表移除媒体
 async function removeFromPlaylist(playlistId, mediaId) {
     try {
-        await utils.request(`/playlists/${playlistId}/items/${mediaId}`, {
-            method: 'DELETE'
-        });
+        await utils.request(`/playlists/${playlistId}/items/${mediaId}`, { method: 'DELETE' });
         managePlaylistItems(playlistId);
         loadPlaylistList();
         showToast('移除成功');
-    } catch (error) {
-        showToast('移除失败', 'error');
+    } catch (e) {
+        showToast('移除失败: ' + e.message, 'error');
     }
 }
 
-// 播放播放列表
 function playPlaylist(id) {
-    // 这里可以发送命令给TV端开始播放
     showToast('发送播放命令...');
-    // 实际实现需要与TV端通信
 }
 
-// 删除播放列表
 async function deletePlaylist(id) {
-    if (!confirm('确定要删除这个播放列表吗？媒体文件不会被删除。')) {
-        return;
-    }
-    
+    const ok = await showConfirm('确定要删除这个播放列表吗？媒体文件不会被删除。');
+    if (!ok) return;
     try {
         await utils.request(`/playlists/${id}`, { method: 'DELETE' });
         loadPlaylistList();
         showToast('删除成功');
-    } catch (error) {
-        showToast('删除失败', 'error');
+    } catch (e) {
+        showToast('删除失败: ' + e.message, 'error');
     }
 }

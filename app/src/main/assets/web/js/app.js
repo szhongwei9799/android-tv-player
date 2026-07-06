@@ -1,161 +1,121 @@
-// API基础URL
 const API_BASE = '/api';
 
-// 通用工具函数
 const utils = {
     async request(url, options = {}) {
-        try {
-            const response = await fetch(`${API_BASE}${url}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                },
-                ...options
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('API请求失败:', error);
-            throw error;
-        }
+        const config = {
+            headers: { 'Content-Type': 'application/json' },
+            ...options
+        };
+        if (!options.body) delete config.headers['Content-Type'];
+        const response = await fetch(`${API_BASE}${url}`, config);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || '请求失败');
+        return data;
     },
 
-    formatDate(timestamp) {
-        if (!timestamp) return '-';
-        const date = new Date(timestamp);
-        return date.toLocaleString('zh-CN');
+    formatDate(ts) {
+        if (!ts) return '-';
+        return new Date(ts).toLocaleString('zh-CN');
     },
 
     formatFileSize(bytes) {
         if (!bytes) return '-';
-        const units = ['B', 'KB', 'MB', 'GB'];
-        let size = bytes;
-        let unitIndex = 0;
-        while (size >= 1024 && unitIndex < units.length - 1) {
-            size /= 1024;
-            unitIndex++;
-        }
-        return `${size.toFixed(1)} ${units[unitIndex]}`;
+        const u = ['B', 'KB', 'MB', 'GB'];
+        let s = bytes, i = 0;
+        while (s >= 1024 && i < u.length - 1) { s /= 1024; i++; }
+        return `${s.toFixed(1)} ${u[i]}`;
     },
 
     formatDuration(ms) {
         if (!ms) return '-';
-        const seconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        if (hours > 0) {
-            return `${hours}:${String(minutes % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-        }
-        return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        const h = Math.floor(m / 60);
+        if (h > 0) return `${h}:${String(m % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+        return `${m}:${String(s % 60).padStart(2, '0')}`;
     },
 
     getMediaTypeIcon(type) {
-        const icons = {
-            'VIDEO': '🎬',
-            'IMAGE': '🖼️',
-            'PPT': '📊',
-            'PDF': '📄',
-            'AUDIO': '🎵',
-            'STREAM': '📹'
-        };
-        return icons[type] || '📁';
+        return { 'VIDEO': '🎬', 'IMAGE': '🖼️', 'PPT': '📊', 'PDF': '📄', 'AUDIO': '🎵', 'STREAM': '📹' }[type] || '📁';
     },
 
     getMediaTypeLabel(type) {
-        const labels = {
-            'VIDEO': '视频',
-            'IMAGE': '图片',
-            'PPT': 'PPT',
-            'PDF': 'PDF',
-            'AUDIO': '音频',
-            'STREAM': '流媒体'
-        };
-        return labels[type] || type;
+        return { 'VIDEO': '视频', 'IMAGE': '图片', 'PPT': 'PPT', 'PDF': 'PDF', 'AUDIO': '音频', 'STREAM': '流媒体' }[type] || type;
     }
 };
 
-// 导航切换
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', (e) => {
+// Navigation
+document.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', e => {
         e.preventDefault();
-        const page = e.target.dataset.page;
-        
-        // 更新导航状态
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        // 切换页面
+        const page = link.dataset.page;
+        document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(page).classList.add('active');
-        
-        // 加载页面数据
         loadPageData(page);
     });
 });
 
-// 加载页面数据
 function loadPageData(page) {
     switch (page) {
-        case 'media':
-            loadMediaList();
-            break;
-        case 'tags':
-            loadTagList();
-            break;
-        case 'playlists':
-            loadPlaylistList();
-            break;
-        case 'tasks':
-            loadTaskList();
-            break;
-        case 'settings':
-            loadSettings();
-            loadSystemInfo();
-            break;
+        case 'media': loadMediaList(); break;
+        case 'tags': loadTagList(); break;
+        case 'playlists': loadPlaylistList(); break;
+        case 'tasks': loadTaskList(); break;
+        case 'settings': loadSettings(); loadSystemInfo(); break;
     }
 }
 
-// 模态框
-function showModal(content) {
+// Modal
+function showModal(title, content) {
+    document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalBody').innerHTML = content;
-    document.getElementById('modal').style.display = 'block';
+    document.getElementById('modal').style.display = 'flex';
 }
 
 function closeModal() {
     document.getElementById('modal').style.display = 'none';
 }
 
-// 点击模态框外部关闭
-document.getElementById('modal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('modal')) {
-        closeModal();
-    }
+document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) closeModal();
 });
 
-// Toast通知
+// Toast
 function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 24px;
-        background-color: ${type === 'success' ? '#4caf50' : '#f44336'};
-        color: white;
-        border-radius: 8px;
-        z-index: 2000;
-        animation: slideIn 0.3s ease;
-    `;
-    document.body.appendChild(toast);
-    
+    const icon = type === 'success' ? '✓' : '✕';
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
+        toast.style.animation = 'toastOut 0.3s ease forwards';
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, 2500);
 }
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-    loadPageData('media');
-});
+// Confirm dialog
+function showConfirm(message) {
+    return new Promise(resolve => {
+        showModal('确认操作', `
+            <p style="margin-bottom:20px;color:var(--text-muted);">${message}</p>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="closeModal();window._confirmRes=false;">取消</button>
+                <button class="btn btn-danger" onclick="closeModal();window._confirmRes=true;">确定</button>
+            </div>
+        `);
+        const check = setInterval(() => {
+            if (window._confirmRes !== undefined) {
+                clearInterval(check);
+                const res = window._confirmRes;
+                window._confirmRes = undefined;
+                resolve(res);
+            }
+        }, 100);
+    });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => loadPageData('media'));
