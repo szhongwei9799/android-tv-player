@@ -1,243 +1,234 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>多媒体展示系统 - 后台管理</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>多媒体展示系统 · 后台管理</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="app">
-        <header class="header">
-            <div class="header-brand">
-                <div class="header-logo">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                </div>
-                <div class="header-title">多媒体展示系统</div>
-            </div>
-            <nav class="header-nav" id="mainNav">
-                <a href="#media" class="nav-item active" data-page="media">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                    <span>媒体库</span>
-                </a>
-                <a href="#tags" class="nav-item" data-page="tags">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-                    <span>标签</span>
-                </a>
-                <a href="#playlists" class="nav-item" data-page="playlists">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    <span>播放列表</span>
-                </a>
-                <a href="#tasks" class="nav-item" data-page="tasks">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span>定时任务</span>
-                </a>
-                <a href="#settings" class="nav-item" data-page="settings">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    <span>设置</span>
-                </a>
-            </nav>
-            <div class="header-meta">
-                <span class="connection-status" id="connectionStatus" title="连接状态">●</span>
-            </div>
-        </header>
 
-        <main class="main">
-            <!-- Media Library -->
-            <section id="media" class="page active">
-                <div class="page-header">
-                    <h2>媒体库</h2>
-                    <div class="page-actions">
-                        <button class="btn btn-primary" onclick="showUploadModal()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            上传文件
-                        </button>
-                        <button class="btn btn-secondary" onclick="showAddMediaModal()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                            添加网络媒体
-                        </button>
-                    </div>
-                </div>
-
-                <div class="filters">
-                    <div class="filter-group">
-                        <select id="mediaTypeFilter" onchange="filterMedia()">
-                            <option value="">全部类型</option>
-                            <option value="VIDEO">视频</option>
-                            <option value="IMAGE">图片</option>
-                            <option value="PPT">PPT</option>
-                            <option value="PDF">PDF</option>
-                            <option value="AUDIO">音频</option>
-                        </select>
-                        <select id="mediaTagFilter" onchange="filterMedia()">
-                            <option value="">全部标签</option>
-                        </select>
-                    </div>
-                    <div class="filter-search">
-                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" id="mediaSearch" placeholder="搜索媒体名称..." oninput="filterMedia()">
-                    </div>
-                </div>
-
-                <div id="mediaControls" class="media-controls" style="display:none;">
-                    <span id="selectedCount" class="selected-count">已选择 0 项</span>
-                    <button class="btn btn-danger btn-sm" onclick="deleteSelectedMedia()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        删除选中
-                    </button>
-                </div>
-
-                <div id="mediaGrid" class="media-grid">
-                    <div class="loading">加载中...</div>
-                </div>
-
-                <div id="uploadArea" class="upload-area" style="display: none;">
-                    <div class="upload-dropzone" id="dropzone">
-                        <div class="dropzone-icon">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        </div>
-                        <p class="dropzone-text">拖拽文件到此处上传</p>
-                        <p class="dropzone-hint">或点击选择文件 · 支持视频、图片、PPT、PDF、音频</p>
-                        <input type="file" id="fileInput" multiple accept="video/*,image/*,.ppt,.pptx,.pdf,audio/*" style="display: none;">
-                    </div>
-                    <div id="uploadProgress" class="upload-progress"></div>
-                </div>
-            </section>
-
-            <!-- Tags -->
-            <section id="tags" class="page">
-                <div class="page-header">
-                    <h2>标签管理</h2>
-                    <button class="btn btn-primary" onclick="showAddTagModal()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        新建标签
-                    </button>
-                </div>
-                <div id="tagList" class="tag-list">
-                    <div class="loading">加载中...</div>
-                </div>
-            </section>
-
-            <!-- Playlists -->
-            <section id="playlists" class="page">
-                <div class="page-header">
-                    <h2>播放列表</h2>
-                    <button class="btn btn-primary" onclick="showAddPlaylistModal()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        新建播放列表
-                    </button>
-                </div>
-                <div id="playlistList" class="playlist-list">
-                    <div class="loading">加载中...</div>
-                </div>
-            </section>
-
-            <!-- Tasks -->
-            <section id="tasks" class="page">
-                <div class="page-header">
-                    <h2>定时任务</h2>
-                    <button class="btn btn-primary" onclick="showAddTaskModal()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        新建任务
-                    </button>
-                </div>
-                <div id="taskList" class="task-list">
-                    <div class="loading">加载中...</div>
-                </div>
-            </section>
-
-            <!-- Settings -->
-            <section id="settings" class="page">
-                <div class="page-header">
-                    <h2>系统设置</h2>
-                </div>
-
-                <div class="settings-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            <h3>显示设置</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <label>图片显示间隔（秒）</label>
-                                <input type="number" id="imageInterval" value="5" min="1" max="60">
-                            </div>
-                            <div class="form-row">
-                                <label>PPT显示间隔（秒）</label>
-                                <input type="number" id="pptInterval" value="10" min="1" max="60">
-                            </div>
-                            <div class="form-row">
-                                <label>PDF显示间隔（秒）</label>
-                                <input type="number" id="pdfInterval" value="10" min="1" max="60">
-                            </div>
-                            <div class="form-row">
-                                <label>转场时长（毫秒）</label>
-                                <input type="number" id="transitionDuration" value="500" min="100" max="2000">
-                            </div>
-                            <button class="btn btn-primary" onclick="saveSettings()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                                保存设置
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                            <h3>系统信息</h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="systemInfo">
-                                <div class="loading">加载中...</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
-                            <h3>访问信息</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <label>服务器地址</label>
-                                <div class="info-value" id="serverUrl">加载中...</div>
-                            </div>
-                            <div class="form-row">
-                                <label>二维码</label>
-                                <div class="qr-container" id="qrContainer">
-                                    <img id="qrImage" src="/api/system/qr" alt="QR Code" style="width:160px;height:160px;border-radius:12px;">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
+<div class="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+      <span class="brand-text">Media<span class="brand-accent">Sync</span></span>
     </div>
+    <nav class="header-nav" id="mainNav">
+      <a href="#media" class="nav-item active" data-page="media">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>媒体</span>
+      </a>
+      <a href="#tags" class="nav-item" data-page="tags">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <span>标签</span>
+      </a>
+      <a href="#playlists" class="nav-item" data-page="playlists">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>播放列表</span>
+      </a>
+      <a href="#tasks" class="nav-item" data-page="tasks">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>定时任务</span>
+      </a>
+      <a href="#settings" class="nav-item" data-page="settings">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>设置</span>
+      </a>
+    </nav>
+    <div class="header-right">
+      <span class="status-dot" id="connectionStatus" title="服务运行中"></span>
+    </div>
+  </header>
 
-    <!-- Modal -->
-    <div id="modal" class="modal-overlay" style="display: none;">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">操作</h3>
-                <button class="modal-close" onclick="closeModal()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-            </div>
-            <div class="modal-body" id="modalBody"></div>
+  <main class="main">
+    <!-- ===== Media Library ===== -->
+    <section id="media" class="page active">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">媒体库</h2>
+          <p class="page-desc">管理所有媒体文件，支持上传和网络导入</p>
         </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="showUploadModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            上传
+          </button>
+          <button class="btn btn-outline" onclick="showAddMediaModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            网络媒体
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-group">
+          <select id="mediaTypeFilter" onchange="filterMedia()">
+            <option value="">全部类型</option>
+            <option value="VIDEO">视频</option>
+            <option value="IMAGE">图片</option>
+            <option value="PPT">PPT</option>
+            <option value="PDF">PDF</option>
+            <option value="AUDIO">音频</option>
+          </select>
+          <select id="mediaTagFilter" onchange="filterMedia()">
+            <option value="">全部标签</option>
+          </select>
+        </div>
+        <div class="search-box">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="mediaSearch" placeholder="搜索媒体..." oninput="filterMedia()">
+        </div>
+      </div>
+
+      <div id="mediaControls" class="selection-bar" style="display:none;">
+        <span id="selectedCount">已选择 0 项</span>
+        <button class="btn btn-danger btn-sm" onclick="deleteSelectedMedia()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          删除选中
+        </button>
+      </div>
+
+      <div id="mediaGrid" class="media-grid"><div class="loading">加载中...</div></div>
+
+      <div id="uploadArea" class="upload-panel" style="display:none;">
+        <div class="upload-dropzone" id="dropzone">
+          <div class="dz-icon">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <p class="dz-title">拖拽文件到此处上传</p>
+          <p class="dz-hint">或点击选择文件 · 支持视频、图片、PPT、PDF、音频</p>
+          <input type="file" id="fileInput" multiple accept="video/*,image/*,.ppt,.pptx,.pdf,audio/*" hidden>
+        </div>
+        <div id="uploadProgress" class="upload-progress"></div>
+      </div>
+    </section>
+
+    <!-- ===== Tags ===== -->
+    <section id="tags" class="page">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">标签管理</h2>
+          <p class="page-desc">给媒体文件打标签，方便分类和筛选</p>
+        </div>
+        <button class="btn btn-primary" onclick="showAddTagModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新建标签
+        </button>
+      </div>
+      <div id="tagList" class="list"><div class="loading">加载中...</div></div>
+    </section>
+
+    <!-- ===== Playlists ===== -->
+    <section id="playlists" class="page">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">播放列表</h2>
+          <p class="page-desc">组合媒体文件，设置播放顺序和转场效果</p>
+        </div>
+        <button class="btn btn-primary" onclick="showAddPlaylistModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新建播放列表
+        </button>
+      </div>
+      <div id="playlistList" class="list"><div class="loading">加载中...</div></div>
+    </section>
+
+    <!-- ===== Tasks ===== -->
+    <section id="tasks" class="page">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">定时任务</h2>
+          <p class="page-desc">设置自动播放、停止等定时任务</p>
+        </div>
+        <button class="btn btn-primary" onclick="showAddTaskModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新建任务
+        </button>
+      </div>
+      <div id="taskList" class="list"><div class="loading">加载中...</div></div>
+    </section>
+
+    <!-- ===== Settings ===== -->
+    <section id="settings" class="page">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">系统设置</h2>
+          <p class="page-desc">管理播放参数和查看系统状态</p>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-head"><div class="card-icon" style="background:#4dabf722;color:#4dabf7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><h3>显示设置</h3></div>
+          <div class="card-body">
+            <div class="field"><label>图片间隔</label><input type="number" id="imageInterval" value="5" min="1" max="60"><span class="unit">秒</span></div>
+            <div class="field"><label>PPT间隔</label><input type="number" id="pptInterval" value="10" min="1" max="60"><span class="unit">秒</span></div>
+            <div class="field"><label>PDF间隔</label><input type="number" id="pdfInterval" value="10" min="1" max="60"><span class="unit">秒</span></div>
+            <div class="field"><label>转场时长</label><input type="number" id="transitionDuration" value="500" min="100" max="2000"><span class="unit">毫秒</span></div>
+            <button class="btn btn-primary" onclick="saveSettings()" style="margin-top:6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              保存设置
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-icon" style="background:#20c99722;color:#20c997;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div><h3>系统信息</h3></div>
+          <div class="card-body"><div id="systemInfo"><div class="loading">加载中...</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-icon" style="background:#ffd43b22;color:#ffd43b;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></div><h3>访问信息</h3></div>
+          <div class="card-body">
+            <div class="field"><label>服务器地址</label><div class="val" id="serverUrl">-</div></div>
+            <div class="field"><label>连接二维码</label><div class="qr-box"><img src="/api/system/qr" alt="QR"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-icon" style="background:#ff6b6b22;color:#ff6b6b;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><h3>安装指引</h3></div>
+          <div class="card-body">
+            <div class="field"><label>最新版本 APK</label>
+              <a class="btn btn-primary" href="https://github.com/szhongwei9799/android-tv-player/releases" target="_blank" rel="noopener" style="display:flex;width:100%;justify-content:center;margin-top:4px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                下载最新 APK
+              </a>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.8;">
+              <div style="padding:10px 12px;background:var(--bg);border-radius:6px;">
+                <strong style="color:var(--text);">安装方法：</strong><br>
+                1. 下载 APK 文件到电脑<br>
+                2. ADB 安装：<code style="color:var(--accent);background:rgba(32,201,151,0.1);padding:1px 6px;border-radius:3px;">adb install -r app-debug.apk</code><br>
+                3. 或用 U 盘拷贝到机顶盒，用文件管理器打开安装
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal-mask" style="display:none">
+  <div class="modal-box">
+    <div class="modal-top">
+      <h4 id="modalTitle">操作</h4>
+      <button class="modal-x" onclick="closeModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
 
-    <!-- Toast container -->
-    <div id="toastContainer" class="toast-container"></div>
+<!-- Toast -->
+<div id="toastContainer" class="toast-wrap"></div>
 
-    <script src="js/app.js"></script>
-    <script src="js/media.js"></script>
-    <script src="js/tag.js"></script>
-    <script src="js/playlist.js"></script>
-    <script src="js/task.js"></script>
-    <script src="js/upload.js"></script>
+<script src="js/app.js"></script>
+<script src="js/media.js"></script>
+<script src="js/tag.js"></script>
+<script src="js/playlist.js"></script>
+<script src="js/task.js"></script>
+<script src="js/upload.js"></script>
 </body>
 </html>
