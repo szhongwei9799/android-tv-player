@@ -44,7 +44,7 @@ class WebServer(
         
         // 静态资源
         if (uri == "/" || uri == "/index.html") {
-            return serveStaticFile("web/index.html", "text/html")
+            return serveStaticFile("web/index.html", "text/html; charset=utf-8")
         }
         
         if (uri.startsWith("/web/")) {
