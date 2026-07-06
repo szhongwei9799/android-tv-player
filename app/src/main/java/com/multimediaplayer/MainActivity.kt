@@ -46,4 +46,8 @@ class MainActivity : ComponentActivity() {
         val serviceIntent = Intent(this, WebService::class.java)
         startForegroundService(serviceIntent)
     }
+
+    override fun onBackPressed() {
+        moveTaskToBack(true)
+    }
 }
