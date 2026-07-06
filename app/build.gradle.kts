@@ -99,6 +99,9 @@ dependencies {
     // WorkManager (定时任务)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     
+    // Leanback (for Theme.Leanback)
+    implementation("androidx.leanback:leanback:1.0.0")
+
     // Activity Compose
     implementation("androidx.activity:activity-compose:1.8.2")
     
