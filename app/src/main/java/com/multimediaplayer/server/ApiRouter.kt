@@ -25,17 +25,7 @@ class ApiRouter(
         val uri = session.uri
         val method = session.method
         
-        // 解析请求体（POST/PUT）
-        if (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT) {
-            val body = HashMap<String, String>()
-            try {
-                session.parseBody(body)
-            } catch (e: Exception) {
-                return errorResponse("Invalid request body")
-            }
-        }
-        
-        // 路由匹配
+        // 路由匹配（body 由各 handler 自行解析，NanoHTTPD 的 parseBody 只能调一次）
         return when {
             // 媒体API
             uri == "/api/media" && method == NanoHTTPD.Method.GET -> {

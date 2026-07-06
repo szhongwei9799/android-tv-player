@@ -134,7 +134,7 @@ class MediaHandler(
             val files = HashMap<String, String>()
             session.parseBody(files)
             
-            val tempFilePath = files["content"] ?: files["postData"]
+            val tempFilePath = files["file"] ?: files["content"] ?: files["postData"]
                 ?: return errorResponse("No file uploaded")
             
             val tempFile = File(tempFilePath)
