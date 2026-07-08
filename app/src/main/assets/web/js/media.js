@@ -132,14 +132,9 @@ async function filterMedia() {
             <td class="td-name" title="${escHtml(m.name)}">${escHtml(m.name)}</td>
             <td class="td-size">${utils.formatFileSize(m.fileSize)}</td>
             <td class="td-dur">${m.duration ? utils.formatDuration(m.duration) : '-'}</td>
-            <td class="td-tags" id="ftags-${m.id}"></td>
+            <td class="td-tags" id="tags-${m.id}"></td>
         </tr>`).join('')}</tbody></table>`;
-        f.forEach(m => {
-            utils.request(`/media/${m.id}/tags`).then(r => {
-                const el = document.getElementById(`ftags-${m.id}`);
-                if (el && r.data) el.innerHTML = r.data.map(t => `<span class="tag-badge" style="background:${t.color}22;color:${t.color}">${escHtml(t.name)}</span>`).join('');
-            }).catch(_ => {});
-        });
+        f.forEach(m => loadMediaTags(m.id));
     } catch (e) { g.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`; }
 }
 

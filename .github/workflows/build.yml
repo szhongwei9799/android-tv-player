@@ -37,3 +37,13 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: 最新构建
+          artifacts: app/build/outputs/apk/debug/*.apk
+          allowUpdates: true
+          removeArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
