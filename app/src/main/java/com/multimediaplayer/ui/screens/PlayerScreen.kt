@@ -160,9 +160,8 @@ fun PlayerScreen(
         }
     }
 
-    fun handleKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN) {
-            when (event.keyCode) {
+    fun handleKeyEvent(event: KeyEvent): Boolean = if (event.action == KeyEvent.ACTION_DOWN) {
+        when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                     if (showChannelList) {
                         val selected = channelItems.getOrNull(channelSelectedIndex)

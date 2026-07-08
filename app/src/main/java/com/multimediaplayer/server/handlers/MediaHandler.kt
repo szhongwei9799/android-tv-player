@@ -191,7 +191,7 @@ class MediaHandler(
             
             assignUnclassifiedTag(id)
 
-            AppLogger.i("MediaHandler", "Uploaded media #$id '$fileName' type=$mediaType size=$contentLength")
+            AppLogger.i("MediaHandler", "Uploaded media #$id '$fileName' type=${media.type} size=${media.fileSize}")
             successResponse(mapOf("id" to id, "name" to fileName))
         } catch (e: Exception) {
             AppLogger.e("MediaHandler", "Upload failed", e)
