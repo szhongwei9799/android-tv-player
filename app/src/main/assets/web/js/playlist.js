@@ -64,39 +64,30 @@ function renderTagItem(t, i) {
 
 
 function showAddTagModal() {
-    showModal('新建播放项目', `<div class="field"><label>标签</label><div class="check-group" id="addTagSelect">加载中...</div></div>
+    showModal('新建播放项目', `<div class="field"><label>项目名称</label><input type="text" id="newTagName" placeholder="例如: 风景片"></div>
+        <div class="field"><label>颜色</label><div style="display:flex;align-items:center;gap:8px;"><input type="color" id="newTagColor" value="#4dabf7"><span style="font-size:11px;color:var(--muted);">用于标识</span></div></div>
         <div class="field"><label>内部播放模式</label><select id="addTagPlayMode">
             <option value="SEQUENTIAL">顺序播放</option><option value="RANDOM">随机播放</option><option value="SHUFFLE">洗牌播放</option></select></div>
         <div class="field"><label>内部循环次数</label><select id="addTagLoopCount">
             <option value="-1">无限循环</option><option value="0">播放一次</option>
             <option value="1">循环1次</option><option value="2">循环2次</option><option value="3">循环3次</option>
             <option value="5">循环5次</option><option value="10">循环10次</option></select></div>
-        <button class="btn btn-primary" onclick="addTagToPlaylist()">添加</button>`);
-    loadAvailableTags();
-}
-
-async function loadAvailableTags() {
-    try {
-        const [tr, pr] = await Promise.all([utils.request('/tags'), utils.request('/playlist')]);
-        const allTags = tr.data || [];
-        const existingIds = new Set((pr.data?.tags||[]).map(t => t.tagId));
-        const avail = allTags.filter(t => !existingIds.has(t.id));
-        document.getElementById('addTagSelect').innerHTML = avail.length
-            ? avail.map(t => `<label><input type="radio" name="addTagRadio" value="${t.id}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${t.color}"></span>${escHtml(t.name)}</label>`).join('')
-            : '<span style="color:var(--muted);font-size:12px;">所有标签已在列表中</span>';
-    } catch(_) { document.getElementById('addTagSelect').innerHTML = '<span style="color:var(--red);font-size:12px;">加载失败</span>'; }
+        <button class="btn btn-primary" onclick="addTagToPlaylist()">创建并添加</button>`);
 }
 
 async function addTagToPlaylist() {
-    const sel = document.querySelector('input[name="addTagRadio"]:checked');
-    if (!sel) { showToast('请选择一个标签','error'); return; }
+    const name = document.getElementById('newTagName').value.trim();
+    if (!name) { showToast('请输入项目名称','error'); return; }
     try {
+        const tr = await utils.request('/tags', { method: 'POST', body: JSON.stringify({
+            name, color: document.getElementById('newTagColor').value }) });
+        const newTagId = tr.data.id;
         await utils.request('/playlist/tags', { method: 'POST', body: JSON.stringify({
-            tagId: parseInt(sel.value),
+            tagId: newTagId,
             playMode: document.getElementById('addTagPlayMode').value,
             loopCount: parseInt(document.getElementById('addTagLoopCount').value) }) });
-        closeModal(); loadPlaylistList(); showToast('添加成功');
-    } catch(e) { showToast('添加失败: '+e.message,'error'); }
+        closeModal(); loadPlaylistList(); showToast('创建成功');
+    } catch(e) { showToast('创建失败: '+e.message,'error'); }
 }
 
 function showEditTagModal(tagId) {
