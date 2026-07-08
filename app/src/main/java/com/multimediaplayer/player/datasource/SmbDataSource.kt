@@ -5,7 +5,6 @@ import androidx.media3.common.C
 import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
-import jcifs.context.BaseContext
 import jcifs.smb.SmbFile
 import java.io.InputStream
 
@@ -20,11 +19,11 @@ class SmbDataSource : BaseDataSource(false) {
         currentUri = dataSpec.uri
         val uriString = dataSpec.uri.toString()
         transferInitializing(dataSpec)
-        smbFile = SmbFile(uriString, BaseContext())
+        smbFile = SmbFile(uriString)
         inputStream = smbFile!!.inputStream
         val length = smbFile!!.length()
         transferStarted(dataSpec)
-        return if (length > 0) length else C.LENGTH_UNSET
+        return if (length > 0) length else C.LENGTH_UNSET.toLong()
     }
 
     @Throws(java.io.IOException::class)

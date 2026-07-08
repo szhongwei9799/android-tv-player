@@ -1,9 +1,11 @@
 package com.multimediaplayer.player.datasource
 
 import android.content.Context
+import android.net.Uri
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.rtmp.RtmpDataSource
 
 class ProtocolDataSourceFactory(private val context: Context) : DataSource.Factory {
@@ -31,7 +33,7 @@ class ProtocolDataSourceFactory(private val context: Context) : DataSource.Facto
 
         private var activeSource: DataSource? = null
 
-        override fun addTransferListener(listener: DataSource.TransferListener) {
+        override fun addTransferListener(listener: TransferListener) {
             defaultSource.addTransferListener(listener)
             smbSource.addTransferListener(listener)
             ftpSource.addTransferListener(listener)
@@ -47,7 +49,7 @@ class ProtocolDataSourceFactory(private val context: Context) : DataSource.Facto
             return activeSource?.read(buffer, offset, length) ?: -1
         }
 
-        override fun getUri(): android.net.Uri? = activeSource?.uri
+        override fun getUri(): Uri? = activeSource?.uri
 
         override fun close() {
             activeSource?.close()

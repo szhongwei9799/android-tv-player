@@ -51,7 +51,7 @@ class FtpDataSource : BaseDataSource(false) {
         }
 
         transferStarted(dataSpec)
-        return C.LENGTH_UNSET
+        return C.LENGTH_UNSET.toLong()
     }
 
     @Throws(java.io.IOException::class)

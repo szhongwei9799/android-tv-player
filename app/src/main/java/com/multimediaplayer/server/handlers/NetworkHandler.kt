@@ -38,7 +38,7 @@ class NetworkHandler(
             } else path
 
             val files = mutableListOf<Map<String, Any>>()
-            val smbFile = jcifs.smb.SmbFile(smbUrl, jcifs.context.BaseContext())
+            val smbFile = jcifs.smb.SmbFile(smbUrl)
             for (f in smbFile.listFiles()) {
                 files.add(mapOf(
                     "name" to f.name,
