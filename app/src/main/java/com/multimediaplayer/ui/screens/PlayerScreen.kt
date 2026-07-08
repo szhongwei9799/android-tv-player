@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.view.KeyEvent
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,14 +15,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,8 +56,6 @@ fun PlayerScreen(
     var channelItems by remember { mutableStateOf<List<ChannelItem>>(emptyList()) }
     var channelSelectedIndex by remember { mutableIntStateOf(0) }
     var pageCommand by remember { mutableIntStateOf(0) }
-
-    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(playlistId) {
         playlist = database.playlistDao().getPlaylistById(playlistId)
@@ -164,79 +162,87 @@ fun PlayerScreen(
         }
     }
 
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        val listener = View.OnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                        if (showChannelList) {
+                            val selected = channelItems.getOrNull(channelSelectedIndex)
+                            if (selected != null && !selected.isHeader) {
+                                currentIndex = selected.mediaIndex
+                                pageCommand = 0
+                                showChannelList = false
+                            }
+                        } else {
+                            showChannelList = true
+                            rebuildChannelItems()
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        if (showChannelList) {
+                            var newIdx = channelSelectedIndex - 1
+                            while (newIdx >= 0 && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx--
+                            if (newIdx >= 0) channelSelectedIndex = newIdx
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        if (showChannelList) {
+                            var newIdx = channelSelectedIndex + 1
+                            while (newIdx < channelItems.size && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx++
+                            if (newIdx < channelItems.size) channelSelectedIndex = newIdx
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        if (!showChannelList && mediaList.isNotEmpty()) {
+                            val media = mediaList[currentIndex]
+                            if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
+                                pageCommand = -1
+                            } else if (currentIndex > 0) {
+                                currentIndex--
+                            }
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        if (!showChannelList && mediaList.isNotEmpty()) {
+                            val media = mediaList[currentIndex]
+                            if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
+                                pageCommand = 1
+                            } else if (currentIndex < mediaList.size - 1) {
+                                currentIndex++
+                            }
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_BACK -> {
+                        if (showChannelList) {
+                            showChannelList = false
+                        } else {
+                            onBack()
+                        }
+                        true
+                    }
+                    else -> false
+                }
+            } else false
+        }
+        view.setOnKeyListener(listener)
+        view.isFocusableInTouchMode = true
+        view.requestFocus()
+        onDispose {
+            view.setOnKeyListener(null)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .focusRequester(focusRequester)
-            .focusable()
-            .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown) {
-                    when (event.key) {
-                        Key.DirectionCenter, Key.Enter -> {
-                            if (showChannelList) {
-                                val selected = channelItems.getOrNull(channelSelectedIndex)
-                                if (selected != null && !selected.isHeader) {
-                                    currentIndex = selected.mediaIndex
-                                    pageCommand = 0
-                                    showChannelList = false
-                                }
-                            } else {
-                                showChannelList = true
-                                rebuildChannelItems()
-                            }
-                            true
-                        }
-                        Key.DirectionUp -> {
-                            if (showChannelList) {
-                                var newIdx = channelSelectedIndex - 1
-                                while (newIdx >= 0 && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx--
-                                if (newIdx >= 0) channelSelectedIndex = newIdx
-                            }
-                            true
-                        }
-                        Key.DirectionDown -> {
-                            if (showChannelList) {
-                                var newIdx = channelSelectedIndex + 1
-                                while (newIdx < channelItems.size && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx++
-                                if (newIdx < channelItems.size) channelSelectedIndex = newIdx
-                            }
-                            true
-                        }
-                        Key.DirectionLeft -> {
-                            if (!showChannelList && mediaList.isNotEmpty()) {
-                                val media = mediaList[currentIndex]
-                                if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
-                                    pageCommand = -1
-                                } else if (currentIndex > 0) {
-                                    currentIndex--
-                                }
-                            }
-                            true
-                        }
-                        Key.DirectionRight -> {
-                            if (!showChannelList && mediaList.isNotEmpty()) {
-                                val media = mediaList[currentIndex]
-                                if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
-                                    pageCommand = 1
-                                } else if (currentIndex < mediaList.size - 1) {
-                                    currentIndex++
-                                }
-                            }
-                            true
-                        }
-                        Key.Back -> {
-                            if (showChannelList) {
-                                showChannelList = false
-                            } else {
-                                onBack()
-                            }
-                            true
-                        }
-                        else -> false
-                    }
-                } else false
-            }
     ) {
         if (mediaList.isEmpty()) {
             Box(
@@ -274,9 +280,6 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
 }
 
 @Composable
