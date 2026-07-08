@@ -181,7 +181,8 @@ fun PlayerScreen(
     LaunchedEffect(currentIndex) { pageCommand = 0 }
 
     // Image interval timer at PlayerScreen level
-    LaunchedEffect(isPaused, currentIndex) {
+    // mediaList.size in key ensures timer restarts when media list loads asynchronously
+    LaunchedEffect(isPaused, currentIndex, mediaList.size) {
         if (!isPaused && currentIndex in mediaList.indices) {
             val media = mediaList[currentIndex]
             if (media.type == MediaType.IMAGE) {
