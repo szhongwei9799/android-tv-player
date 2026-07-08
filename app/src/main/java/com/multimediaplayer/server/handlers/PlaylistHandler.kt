@@ -115,14 +115,16 @@ class PlaylistHandler(
         val tagIds = data.get("tagIds")?.asJsonArray
         if (tagIds != null) {
             val tags = tagIds.mapNotNull { it?.asLong }
-            tags.forEachIndexed { idx, tagId ->
-                database.playlistDao().insertPlaylistItemTag(
-                    PlaylistItemTag(
-                        itemId = itemId,
-                        tagId = tagId,
-                        sortOrder = idx
+            runBlocking {
+                tags.forEachIndexed { idx, tagId ->
+                    database.playlistDao().insertPlaylistItemTag(
+                        PlaylistItemTag(
+                            itemId = itemId,
+                            tagId = tagId,
+                            sortOrder = idx
+                        )
                     )
-                )
+                }
             }
         }
 
