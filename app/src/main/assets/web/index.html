@@ -29,6 +29,10 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
         <span>播放列表</span>
       </a>
+      <a href="#network" class="nav-item" data-page="network">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.35 2.22A18 18 0 0 1 21 5.5M17.35 2.22A18 18 0 0 0 12 2a18 18 0 0 0-5.35.78m10.7 0a18 18 0 0 1 4.29 4.71m-4.29-4.71L12 12m0 0L6.65 2.22M12 12l4.29 13.78M12 12H2.22M12 12l9.78 9.78m0 0A18 18 0 0 0 12 22a18 18 0 0 0-9.78-2.22m19.56 0l-4.29-4.29m0-4.49l4.29 4.29M2.22 2.22l4.29 4.29M6.65 17.78L2.22 22"/></svg>
+        <span>网络存储</span>
+      </a>
       <a href="#tasks" class="nav-item" data-page="tasks">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span>定时任务</span>
@@ -209,6 +213,27 @@
         </div>
       </div>
     </section>
+
+    <!-- ===== Network Storage ===== -->
+    <section id="network" class="page">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">网络存储</h2>
+          <p class="page-desc">浏览 SMB / FTP / WebDAV 远程服务器上的媒体文件</p>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <select id="netProtocol" onchange="switchProtocol()">
+            <option value="smb">SMB (Windows共享)</option>
+            <option value="ftp">FTP</option>
+            <option value="webdav">WebDAV</option>
+          </select>
+        </div>
+        <button class="btn btn-outline" onclick="showConnectModal()">连接服务器</button>
+      </div>
+      <div id="netBrowser"><div class="empty-state"><div class="empty-icon">🌐</div><p>点击「连接服务器」浏览远程文件</p></div></div>
+    </section>
   </main>
 </div>
 
@@ -234,5 +259,6 @@
 <script src="/web/js/playlist.js"></script>
 <script src="/web/js/task.js"></script>
 <script src="/web/js/upload.js"></script>
+<script src="/web/js/network.js"></script>
 </body>
 </html>

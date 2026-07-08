@@ -48,6 +48,7 @@ function loadPageData(p) {
         case 'media': loadMediaList(); break;
         case 'tags': loadTagList(); break;
         case 'playlists': loadPlaylistList(); break;
+        case 'network': break;
         case 'tasks': loadTaskList(); break;
         case 'settings': loadSettings(); loadSystemInfo(); break;
     }

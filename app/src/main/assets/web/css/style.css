@@ -405,6 +405,24 @@ body{
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 @keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
 
+/* ===== Network Browser ===== */
+.net-toolbar{
+  padding:10px 14px;background:var(--surf);border-radius:6px;margin-bottom:10px;
+  font-size:13px;word-break:break-all;line-height:1.8
+}
+.net-list{display:flex;flex-direction:column;gap:4px}
+.net-item{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;
+  background:var(--surf);border-radius:6px;cursor:default;transition:background var(--tr)
+}
+.net-item:hover{background:var(--hover)}
+.net-item[onclick]{cursor:pointer}
+.net-icon{font-size:22px;flex-shrink:0;width:32px;text-align:center}
+.net-info{flex:1;min-width:0}
+.net-name{font-size:14px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.net-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.net-actions{flex-shrink:0}
+
 /* ===== Responsive ===== */
 @media(max-width:700px){
   .header{padding:0 12px}

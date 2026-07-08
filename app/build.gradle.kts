@@ -58,6 +58,11 @@ android {
             excludes += "/META-INF/LICENSE.txt"
             excludes += "/META-INF/NOTICE"
             excludes += "/META-INF/NOTICE.txt"
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/sun-jaxb.episode"
+            excludes += "/META-INF/*.SF"
+            excludes += "/META-INF/*.DSA"
+            excludes += "/META-INF/*.RSA"
         }
     }
 }
@@ -77,6 +82,8 @@ dependencies {
     // Media3 (ExoPlayer)
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-exoplayer-hls:1.2.0")
+    implementation("androidx.media3:media3-exoplayer-rtsp:1.2.0")
+    implementation("androidx.media3:media3-datasource-rtmp:1.2.0")
     implementation("androidx.media3:media3-ui:1.2.0")
     implementation("androidx.media3:media3-session:1.2.0")
     
@@ -101,6 +108,12 @@ dependencies {
     
     // 网络
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // SMB 文件共享
+    implementation("eu.agno3.jcifs:jcifs-ng:2.1.6")
+
+    // FTP 客户端
+    implementation("commons-net:commons-net:3.9.0")
     
     // JSON
     implementation("com.google.code.gson:gson:2.10.1")

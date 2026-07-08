@@ -163,8 +163,9 @@ function showUploadModal() {
 }
 
 function showAddMediaModal() {
-    showModal('添加网络媒体', `<div class="field"><label>名称</label><input type="text" id="networkMediaName" placeholder="例如: 风景视频"></div>
-        <div class="field"><label>URL</label><input type="url" id="networkMediaUrl" placeholder="https://example.com/video.mp4"></div>
+    showModal('添加网络媒体', `<div class="field"><label>名称</label><input type="text" id="networkMediaName" placeholder="例如: 远程视频"></div>
+        <div class="field"><label>URL</label><input type="url" id="networkMediaUrl" placeholder="https://example.com/video.mp4">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">支持协议: http:// https:// rtsp:// rtmp:// smb:// ftp:// ftps://</div></div>
         <div class="field"><label>类型</label><select id="networkMediaType">
             <option value="VIDEO">视频</option><option value="IMAGE">图片</option><option value="AUDIO">音频</option><option value="STREAM">流媒体</option>
         </select></div>

@@ -14,8 +14,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.rtsp.RtspMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
+import com.multimediaplayer.player.datasource.ProtocolDataSourceFactory
 import com.multimediaplayer.data.models.Media
 import com.multimediaplayer.data.models.MediaType
 import com.multimediaplayer.utils.PdfRendererHelper
@@ -81,16 +84,28 @@ fun VideoPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val exoPlayer = remember { ExoPlayer.Builder(context).build() }
+    val dataSourceFactory = remember { ProtocolDataSourceFactory(context) }
+    val rtspSourceFactory = remember { RtspMediaSource.Factory() }
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
+            .build()
+    }
     
     LaunchedEffect(media.path) {
-        val mediaItem = if (media.source == com.multimediaplayer.data.models.MediaSource.LOCAL) {
-            MediaItem.fromUri(Uri.fromFile(File(media.path)))
+        val mediaSource = if (media.path.startsWith("rtsp://", ignoreCase = true) || media.path.startsWith("rtsps://", ignoreCase = true)) {
+            rtspSourceFactory.createMediaSource(MediaItem.fromUri(Uri.parse(media.path)))
+        } else if (media.source == com.multimediaplayer.data.models.MediaSource.LOCAL) {
+            val defaultMediaSourceFactory = DefaultMediaSourceFactory(context)
+                .setDataSourceFactory(dataSourceFactory)
+            defaultMediaSourceFactory.createMediaSource(MediaItem.fromUri(Uri.fromFile(File(media.path))))
         } else {
-            MediaItem.fromUri(Uri.parse(media.path))
+            val defaultMediaSourceFactory = DefaultMediaSourceFactory(context)
+                .setDataSourceFactory(dataSourceFactory)
+            defaultMediaSourceFactory.createMediaSource(MediaItem.fromUri(Uri.parse(media.path)))
         }
-        
-        exoPlayer.setMediaItem(mediaItem)
+
+        exoPlayer.setMediaSource(mediaSource)
         exoPlayer.prepare()
         exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -271,16 +286,28 @@ fun AudioPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val exoPlayer = remember { ExoPlayer.Builder(context).build() }
-    
+    val dataSourceFactory = remember { ProtocolDataSourceFactory(context) }
+    val rtspSourceFactory = remember { RtspMediaSource.Factory() }
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
+            .build()
+    }
+
     LaunchedEffect(media.path) {
-        val mediaItem = if (media.source == com.multimediaplayer.data.models.MediaSource.LOCAL) {
-            MediaItem.fromUri(Uri.fromFile(File(media.path)))
+        val mediaSource = if (media.path.startsWith("rtsp://", ignoreCase = true) || media.path.startsWith("rtsps://", ignoreCase = true)) {
+            rtspSourceFactory.createMediaSource(MediaItem.fromUri(Uri.parse(media.path)))
+        } else if (media.source == com.multimediaplayer.data.models.MediaSource.LOCAL) {
+            val defaultMediaSourceFactory = DefaultMediaSourceFactory(context)
+                .setDataSourceFactory(dataSourceFactory)
+            defaultMediaSourceFactory.createMediaSource(MediaItem.fromUri(Uri.fromFile(File(media.path))))
         } else {
-            MediaItem.fromUri(Uri.parse(media.path))
+            val defaultMediaSourceFactory = DefaultMediaSourceFactory(context)
+                .setDataSourceFactory(dataSourceFactory)
+            defaultMediaSourceFactory.createMediaSource(MediaItem.fromUri(Uri.parse(media.path)))
         }
-        
-        exoPlayer.setMediaItem(mediaItem)
+
+        exoPlayer.setMediaSource(mediaSource)
         exoPlayer.prepare()
     }
     

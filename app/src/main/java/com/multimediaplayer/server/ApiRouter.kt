@@ -20,6 +20,7 @@ class ApiRouter(
     private val taskHandler = TaskHandler(database)
     private val streamHandler = StreamHandler(database, context)
     private val systemHandler = SystemHandler(database, context)
+    private val networkHandler = NetworkHandler(database, context)
     
     fun handleRequest(session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
         val uri = session.uri
@@ -170,7 +171,21 @@ class ApiRouter(
             uri == "/api/display/control" && method == NanoHTTPD.Method.POST -> {
                 systemHandler.controlDisplay(session)
             }
-            
+
+            // 网络存储API
+            uri == "/api/network/smb" && method == NanoHTTPD.Method.GET -> {
+                networkHandler.browseSmb(session)
+            }
+            uri == "/api/network/ftp" && method == NanoHTTPD.Method.GET -> {
+                networkHandler.browseFtp(session)
+            }
+            uri == "/api/network/webdav" && method == NanoHTTPD.Method.GET -> {
+                networkHandler.browseWebdav(session)
+            }
+            uri == "/api/network/import" && method == NanoHTTPD.Method.POST -> {
+                networkHandler.importNetworkFile(session)
+            }
+
             else -> errorResponse("Not Found", NanoHTTPD.Response.Status.NOT_FOUND)
         }
     }
