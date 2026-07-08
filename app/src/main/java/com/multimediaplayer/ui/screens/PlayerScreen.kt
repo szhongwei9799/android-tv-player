@@ -291,10 +291,10 @@ fun PlayerScreen(
                             (fadeIn(fadeSpec)) togetherWith (fadeOut(fadeSpec))
                         TransitionType.RANDOM -> {
                             val effects = listOf(
-                                { slideInHorizontally { -it } + fadeIn(fadeSpec) },
-                                { slideInVertically { -it } + fadeIn(fadeSpec) },
-                                { scaleIn(initialScale = 0.5f) + fadeIn(fadeSpec) },
-                                { fadeIn(fadeSpec) }
+                                slideInHorizontally { -it } + fadeIn(fadeSpec),
+                                slideInVertically { -it } + fadeIn(fadeSpec),
+                                scaleIn(initialScale = 0.5f) + fadeIn(fadeSpec),
+                                fadeIn(fadeSpec)
                             )
                             effects.random() togetherWith fadeOut(fadeSpec)
                         }
