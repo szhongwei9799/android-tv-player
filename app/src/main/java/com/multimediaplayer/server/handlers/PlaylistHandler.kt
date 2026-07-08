@@ -22,18 +22,20 @@ class PlaylistHandler(
         val playlist = runBlocking { database.playlistDao().ensureDefaultPlaylist() }
         val tags = runBlocking { database.playlistDao().getPlaylistTags(playlist.id) }
         
-        val tagDetails = tags.map { pt ->
-            val tag = database.tagDao().getTagById(pt.tagId)
-            val count = if (tag != null) database.tagDao().getTagMediaCount(pt.tagId) else 0
-            PlaylistTagResponse(
-                tagId = pt.tagId,
-                name = tag?.name ?: "未知",
-                color = tag?.color ?: "#999999",
-                sortOrder = pt.sortOrder,
-                playMode = pt.playMode,
-                loopCount = pt.loopCount,
-                mediaCount = count
-            )
+        val tagDetails = runBlocking {
+            tags.map { pt ->
+                val tag = database.tagDao().getTagById(pt.tagId)
+                val count = if (tag != null) database.tagDao().getTagMediaCount(pt.tagId) else 0
+                PlaylistTagResponse(
+                    tagId = pt.tagId,
+                    name = tag?.name ?: "未知",
+                    color = tag?.color ?: "#999999",
+                    sortOrder = pt.sortOrder,
+                    playMode = pt.playMode,
+                    loopCount = pt.loopCount,
+                    mediaCount = count
+                )
+            }
         }
         
         return successResponse(mapOf(
