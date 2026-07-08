@@ -39,13 +39,13 @@ class TaskHandler(
         val task = ScheduledTask(
             name = name,
             type = type,
-            playlistId = data.get("playlistId")?.asLong,
-            cronExpression = data.get("cronExpression")?.asString,
-            timeOfDay = data.get("timeOfDay")?.asString,
-            daysOfWeek = data.get("daysOfWeek")?.asString,
-            startDate = data.get("startDate")?.asLong,
-            endDate = data.get("endDate")?.asLong,
-            isEnabled = data.get("isEnabled")?.asBoolean ?: true
+            playlistId = data.get("playlistId")?.takeIf { !it.isJsonNull }?.asLong,
+            cronExpression = data.get("cronExpression")?.takeIf { !it.isJsonNull }?.asString,
+            timeOfDay = data.get("timeOfDay")?.takeIf { !it.isJsonNull }?.asString,
+            daysOfWeek = data.get("daysOfWeek")?.takeIf { !it.isJsonNull }?.asString,
+            startDate = data.get("startDate")?.takeIf { !it.isJsonNull }?.asLong,
+            endDate = data.get("endDate")?.takeIf { !it.isJsonNull }?.asLong,
+            isEnabled = data.get("isEnabled")?.takeIf { !it.isJsonNull }?.asBoolean ?: true
         )
         
         val id = runBlocking { database.taskDao().insertTask(task) }
@@ -70,13 +70,13 @@ class TaskHandler(
             } catch (e: Exception) {
                 existingTask.type
             },
-            playlistId = data.get("playlistId")?.asLong ?: existingTask.playlistId,
-            cronExpression = data.get("cronExpression")?.asString ?: existingTask.cronExpression,
-            timeOfDay = data.get("timeOfDay")?.asString ?: existingTask.timeOfDay,
-            daysOfWeek = data.get("daysOfWeek")?.asString ?: existingTask.daysOfWeek,
-            startDate = data.get("startDate")?.asLong ?: existingTask.startDate,
-            endDate = data.get("endDate")?.asLong ?: existingTask.endDate,
-            isEnabled = data.get("isEnabled")?.asBoolean ?: existingTask.isEnabled
+            playlistId = data.get("playlistId")?.takeIf { !it.isJsonNull }?.asLong ?: existingTask.playlistId,
+            cronExpression = data.get("cronExpression")?.takeIf { !it.isJsonNull }?.asString ?: existingTask.cronExpression,
+            timeOfDay = data.get("timeOfDay")?.takeIf { !it.isJsonNull }?.asString ?: existingTask.timeOfDay,
+            daysOfWeek = data.get("daysOfWeek")?.takeIf { !it.isJsonNull }?.asString ?: existingTask.daysOfWeek,
+            startDate = data.get("startDate")?.takeIf { !it.isJsonNull }?.asLong ?: existingTask.startDate,
+            endDate = data.get("endDate")?.takeIf { !it.isJsonNull }?.asLong ?: existingTask.endDate,
+            isEnabled = data.get("isEnabled")?.takeIf { !it.isJsonNull }?.asBoolean ?: existingTask.isEnabled
         )
         
         runBlocking { database.taskDao().updateTask(updatedTask) }
