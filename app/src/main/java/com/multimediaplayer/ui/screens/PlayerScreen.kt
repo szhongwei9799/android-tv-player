@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.view.KeyEvent
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -253,34 +253,79 @@ fun PlayerScreen(
                 CircularProgressIndicator()
             }
         } else {
-            val transitionDuration = displaySettings?.transitionDuration ?: 500
+            val fadeSpec = tween<Float>(durationMillis = displaySettings?.transitionDuration ?: 500)
+            val transitionType = playlist?.transitionEffect ?: TransitionType.FADE
 
-            Crossfade(
+            AnimatedContent(
                 targetState = currentIndex,
-                animationSpec = tween(durationMillis = transitionDuration),
+                transitionSpec = {
+                    when (transitionType) {
+                        TransitionType.SLIDE_LEFT ->
+                            (slideInHorizontally { -it } + fadeIn(fadeSpec)) togetherWith
+                            (slideOutHorizontally { it } + fadeOut(fadeSpec))
+                        TransitionType.SLIDE_RIGHT ->
+                            (slideInHorizontally { it } + fadeIn(fadeSpec)) togetherWith
+                            (slideOutHorizontally { -it } + fadeOut(fadeSpec))
+                        TransitionType.SLIDE_UP ->
+                            (slideInVertically { -it } + fadeIn(fadeSpec)) togetherWith
+                            (slideOutVertically { it } + fadeOut(fadeSpec))
+                        TransitionType.SLIDE_DOWN ->
+                            (slideInVertically { it } + fadeIn(fadeSpec)) togetherWith
+                            (slideOutVertically { -it } + fadeOut(fadeSpec))
+                        TransitionType.ZOOM_IN ->
+                            (scaleIn(initialScale = 0.5f) + fadeIn(fadeSpec)) togetherWith
+                            (scaleOut(targetScale = 2f) + fadeOut(fadeSpec))
+                        TransitionType.ZOOM_OUT ->
+                            (scaleIn(initialScale = 2f) + fadeIn(fadeSpec)) togetherWith
+                            (scaleOut(targetScale = 0.5f) + fadeOut(fadeSpec))
+                        TransitionType.WIPE_LEFT ->
+                            (slideInHorizontally { -it }) togetherWith
+                            (slideOutHorizontally { it })
+                        TransitionType.WIPE_RIGHT ->
+                            (slideInHorizontally { it }) togetherWith
+                            (slideOutHorizontally { -it })
+                        TransitionType.DISSOLVE ->
+                            (fadeIn(animationSpec = tween(1000))) togetherWith
+                            (fadeOut(animationSpec = tween(1000)))
+                        TransitionType.BLUR, TransitionType.FADE ->
+                            (fadeIn(fadeSpec)) togetherWith (fadeOut(fadeSpec))
+                        TransitionType.RANDOM -> {
+                            val effects = listOf(
+                                { slideInHorizontally { -it } + fadeIn(fadeSpec) },
+                                { slideInVertically { -it } + fadeIn(fadeSpec) },
+                                { scaleIn(initialScale = 0.5f) + fadeIn(fadeSpec) },
+                                { fadeIn(fadeSpec) }
+                            )
+                            effects.random() togetherWith fadeOut(fadeSpec)
+                        }
+                        TransitionType.NONE ->
+                            (fadeIn(animationSpec = tween(0))) togetherWith
+                            (fadeOut(animationSpec = tween(0)))
+                    }.using(SizeTransform(clip = false))
+                },
                 label = "mediaTransition"
             ) { index ->
-                val m = mediaList[index]
-
-                MediaRenderer(
-                    media = m,
-                    isPlaying = !isPaused && index == currentIndex,
-                    onVideoComplete = {
-                        if (index == currentIndex) {
-                            if (shouldContinue()) {
-                                currentIndex = getNextIndex()
-                            } else {
-                                isPaused = true
+                key(mediaList[index].id) {
+                    MediaRenderer(
+                        media = mediaList[index],
+                        isPlaying = !isPaused && index == currentIndex,
+                        onVideoComplete = {
+                            if (index == currentIndex) {
+                                if (shouldContinue()) {
+                                    currentIndex = getNextIndex()
+                                } else {
+                                    isPaused = true
+                                }
                             }
-                        }
-                    },
-                    pageCommand = if (index == currentIndex) pageCommand else 0,
-                    onPageCommandConsumed = { if (index == currentIndex) pageCommand = 0 },
-                    imageInterval = displaySettings?.imageInterval ?: 5,
-                    pptInterval = displaySettings?.pptInterval ?: 10,
-                    pdfInterval = displaySettings?.pdfInterval ?: 10,
-                    modifier = Modifier.fillMaxSize()
-                )
+                        },
+                        pageCommand = if (index == currentIndex) pageCommand else 0,
+                        onPageCommandConsumed = { if (index == currentIndex) pageCommand = 0 },
+                        imageInterval = displaySettings?.imageInterval ?: 5,
+                        pptInterval = displaySettings?.pptInterval ?: 10,
+                        pdfInterval = displaySettings?.pdfInterval ?: 10,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
 
             if (showChannelList) {
