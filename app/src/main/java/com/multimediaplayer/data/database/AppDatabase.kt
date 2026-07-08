@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
         Tag::class,
         MediaTagCrossRef::class,
         Playlist::class,
-        PlaylistItem::class,
         PlaylistTag::class,
         ScheduledTask::class,
         DisplaySettings::class,

@@ -38,6 +38,7 @@ private data class ChannelItem(
 @Composable
 fun PlayerScreen(
     playlistId: Long,
+    durationMinutes: Int? = null,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -57,25 +58,23 @@ fun PlayerScreen(
 
     LaunchedEffect(playlistId) {
         playlist = database.playlistDao().getPlaylistById(playlistId)
-
-        when (playlist?.type) {
-            PlaylistType.MANUAL -> {
-                database.playlistDao().getPlaylistMedia(playlistId).collect { media ->
+        if (playlist != null) {
+            val playlistTags = database.playlistDao().getPlaylistTags(playlistId)
+            val tagIds = playlistTags.map { it.tagId }
+            if (tagIds.isNotEmpty()) {
+                database.tagDao().getMediaByTagIds(tagIds).collect { media ->
                     mediaList = media
                     shuffleOrder = (media.indices).toList().shuffled()
                 }
             }
-            PlaylistType.TAG_BASED -> {
-                val playlistTags = database.playlistDao().getPlaylistTags(playlistId)
-                val tagIds = playlistTags.map { it.tagId }
-                if (tagIds.isNotEmpty()) {
-                    database.tagDao().getMediaByTagIds(tagIds).collect { media ->
-                        mediaList = media
-                        shuffleOrder = (media.indices).toList().shuffled()
-                    }
-                }
-            }
-            else -> {}
+        }
+    }
+
+    // 定时任务播放时长：到时自动返回
+    LaunchedEffect(playlistId, durationMinutes) {
+        if (durationMinutes != null && durationMinutes > 0) {
+            kotlinx.coroutines.delay(durationMinutes * 60_000L)
+            onBack()
         }
     }
 
@@ -124,38 +123,24 @@ fun PlayerScreen(
     }
 
     fun getNextIndex(): Int {
-        val pl = playlist ?: return currentIndex + 1
         val size = mediaList.size
         if (size <= 1) return 0
-        return when (pl.playMode) {
-            PlayMode.RANDOM -> {
-                var next = currentIndex
-                while (next == currentIndex && size > 1) next = (0 until size).random()
-                next
-            }
-            PlayMode.SHUFFLE -> {
-                val idx = shuffleOrder.indexOf(currentIndex)
-                if (idx < size - 1) shuffleOrder[idx + 1] else shuffleOrder.firstOrNull() ?: 0
-            }
-            else -> {
-                if (currentIndex < size - 1) currentIndex + 1 else 0
-            }
+
+        if (shuffleOrder.isNotEmpty() && shuffleOrder.size == size) {
+            val idx = shuffleOrder.indexOf(currentIndex)
+            if (idx < size - 1) return shuffleOrder[idx + 1]
         }
+        return if (currentIndex < size - 1) currentIndex + 1 else 0
     }
 
     fun shouldContinue(): Boolean {
-        val pl = playlist ?: return true
         val size = mediaList.size
         if (size <= 1) return false
-        val isLast = when (pl.playMode) {
-            PlayMode.SHUFFLE -> shuffleOrder.indexOf(currentIndex) >= size - 1
-            else -> currentIndex >= size - 1
-        }
+        val isLast = currentIndex >= size - 1
         if (!isLast) return true
         loopCompleted++
         return when {
-            pl.loopCount == -1 -> true
-            loopCompleted < pl.loopCount -> true
+            loopCompleted < 1 -> true
             else -> false
         }
     }

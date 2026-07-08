@@ -34,7 +34,16 @@ function showAddTaskModal() {
     showModal('新建定时任务', `<div class="field"><label>名称</label><input type="text" id="taskName" placeholder="例如: 上午播放"></div>
         <div class="field"><label>类型</label><select id="taskType" onchange="togglePSelection()">
             <option value="PLAY">播放</option><option value="STOP">停止</option><option value="POWER_OFF">关机</option></select></div>
-        <div id="playlistSelection" class="field"><label>播放列表</label><select id="taskPlaylist"><option value="">选择...</option></select></div>
+        <div id="playlistSelection" class="field" style="display:none;"><label>播放</label><span style="font-size:12px;color:var(--muted);">将播放默认播放列表</span></div>
+        <div class="field" id="durationField"><label>播放时长</label><select id="taskDuration">
+            <option value="">无限（直到手动停止）</option>
+            <option value="5">5 分钟</option>
+            <option value="10">10 分钟</option>
+            <option value="15">15 分钟</option>
+            <option value="30">30 分钟</option>
+            <option value="60">1 小时</option>
+            <option value="120">2 小时</option>
+        </select></div>
         <div class="field"><label>时间</label><input type="time" id="taskTime" value="08:00"></div>
         <div class="field"><label>重复</label>
             <div style="display:flex;gap:12px;font-size:13px;"><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="taskRepeat" value="daily" checked>每天</label>
@@ -42,30 +51,31 @@ function showAddTaskModal() {
         <div id="weekdaySelection" class="field" style="display:none;"><label>星期</label>
             <div style="display:flex;gap:5px;flex-wrap:wrap;">${['一','二','三','四','五','六','日'].map((d,i)=>`<label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:13px;"><input type="checkbox" value="${i+1}">${d}</label>`).join('')}</div></div>
         <button class="btn btn-primary" onclick="createTask()">创建</button>`);
-    loadPlaylistsForTask();
+    togglePSelection();
     document.querySelectorAll('input[name="taskRepeat"]').forEach(r => r.addEventListener('change', () => { document.getElementById('weekdaySelection').style.display = document.querySelector('input[name="taskRepeat"]:checked').value === 'weekly' ? 'flex' : 'none'; }));
     document.getElementById('weekdaySelection').style.display = 'none';
 }
 
-function togglePSelection() { document.getElementById('playlistSelection').style.display = document.getElementById('taskType').value === 'PLAY' ? 'flex' : 'none'; }
-
-async function loadPlaylistsForTask() {
-    try { const r = await utils.request('/playlists'); const pl = r.data || [];
-        document.getElementById('taskPlaylist').innerHTML = '<option value="">选择...</option>' + pl.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join(''); }
-    catch(_) {}
+function togglePSelection() {
+    const isPlay = document.getElementById('taskType').value === 'PLAY';
+    document.getElementById('playlistSelection').style.display = isPlay ? 'flex' : 'none';
+    document.getElementById('durationField').style.display = isPlay ? 'flex' : 'none';
 }
 
 async function createTask() {
     const n = document.getElementById('taskName').value.trim();
     if (!n) { showToast('请输入名称','error'); return; }
     const type = document.getElementById('taskType').value;
-    const pid = document.getElementById('taskPlaylist').value;
     const time = document.getElementById('taskTime').value;
     const rep = document.querySelector('input[name="taskRepeat"]:checked').value;
     let dow = null;
     if (rep === 'weekly') dow = Array.from(document.querySelectorAll('#weekdaySelection input:checked')).map(c => c.value).join(',');
+    const dur = document.getElementById('taskDuration').value;
     try {
-        await utils.request('/tasks', { method: 'POST', body: JSON.stringify({ name: n, type, playlistId: pid ? parseInt(pid) : null, timeOfDay: time, daysOfWeek: dow }) });
+        await utils.request('/tasks', { method: 'POST', body: JSON.stringify({
+            name: n, type, playlistId: 1,
+            timeOfDay: time, daysOfWeek: dow,
+            durationMinutes: dur ? parseInt(dur) : null }) });
         closeModal(); loadTaskList(); showToast('创建成功');
     } catch(e) { showToast('创建失败: '+e.message,'error'); }
 }
@@ -75,25 +85,32 @@ function editTask(id) {
     showModal('编辑任务', `<div class="field"><label>名称</label><input type="text" id="editTaskName" value="${escHtml(t.name)}"></div>
         <div class="field"><label>类型</label><select id="editTaskType" onchange="toggleEPSelection()">
             ${['PLAY','STOP','POWER_OFF'].map(v => `<option value="${v}" ${t.type===v?'selected':''}>${taskLabel(v)}</option>`).join('')}</select></div>
-        <div id="editPlaylistSelection" class="field" style="display:${t.type==='PLAY'?'flex':'none'}"><label>播放列表</label><select id="editTaskPlaylist"><option value="">选择...</option></select></div>
+        <div id="editPlaylistSelection" class="field" style="display:${t.type==='PLAY'?'flex':'none'}"><label>播放</label><span style="font-size:12px;color:var(--muted);">将播放默认播放列表</span></div>
+        <div id="editDurationField" class="field" style="display:${t.type==='PLAY'?'flex':'none'}"><label>播放时长</label><select id="editTaskDuration">
+            <option value="">无限（直到手动停止）</option>
+            ${[5,10,15,30,60,120].map(v => `<option value="${v}" ${t.durationMinutes===v?'selected':''}>${v} 分钟</option>`).join('')}
+        </select></div>
         <div class="field"><label>时间</label><input type="time" id="editTaskTime" value="${t.timeOfDay||'08:00'}"></div>
         <button class="btn btn-primary" onclick="updateTask(${id})">保存</button>`);
-    loadPlaylistsForEdit(t.playlistId);
 }
 
-function toggleEPSelection() { document.getElementById('editPlaylistSelection').style.display = document.getElementById('editTaskType').value === 'PLAY' ? 'flex' : 'none'; }
-
-async function loadPlaylistsForEdit(sid) {
-    try { const r = await utils.request('/playlists'); const pl = r.data || [];
-        document.getElementById('editTaskPlaylist').innerHTML = '<option value="">选择...</option>' + pl.map(p => `<option value="${p.id}" ${p.id===sid?'selected':''}>${escHtml(p.name)}</option>`).join(''); }
-    catch(_) {}
+function toggleEPSelection() {
+    const isPlay = document.getElementById('editTaskType').value === 'PLAY';
+    document.getElementById('editPlaylistSelection').style.display = isPlay ? 'flex' : 'none';
+    document.getElementById('editDurationField').style.display = isPlay ? 'flex' : 'none';
 }
 
 async function updateTask(id) {
     const n = document.getElementById('editTaskName').value.trim();
     if (!n) { showToast('请输入名称','error'); return; }
+    const dur = document.getElementById('editTaskDuration').value;
     try {
-        await utils.request(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ name: n, type: document.getElementById('editTaskType').value, playlistId: parseInt(document.getElementById('editTaskPlaylist').value)||null, timeOfDay: document.getElementById('editTaskTime').value }) });
+        await utils.request(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({
+            name: n,
+            type: document.getElementById('editTaskType').value,
+            playlistId: 1,
+            timeOfDay: document.getElementById('editTaskTime').value,
+            durationMinutes: dur ? parseInt(dur) : null }) });
         closeModal(); loadTaskList(); showToast('更新成功');
     } catch(e) { showToast('更新失败: '+e.message,'error'); }
 }

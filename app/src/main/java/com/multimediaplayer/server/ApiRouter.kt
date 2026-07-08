@@ -95,43 +95,28 @@ class ApiRouter(
                 tagHandler.deleteTag(id)
             }
             
-            // 播放列表API
-            uri == "/api/playlists" && method == NanoHTTPD.Method.GET -> {
-                playlistHandler.getPlaylistList()
+            // 播放列表API - 单一播放列表，管理其标签项目
+            uri == "/api/playlist" && method == NanoHTTPD.Method.GET -> {
+                playlistHandler.getDefaultPlaylist()
             }
-            uri == "/api/playlists" && method == NanoHTTPD.Method.POST -> {
-                playlistHandler.createPlaylist(session)
+            uri == "/api/playlist" && method == NanoHTTPD.Method.PUT -> {
+                playlistHandler.updatePlaylistSettings(session)
             }
-            uri.matches(Regex("^/api/playlists/\\d+$")) && method == NanoHTTPD.Method.GET -> {
-                val id = uri.split("/").last().toLong()
-                playlistHandler.getPlaylist(id)
+            uri == "/api/playlist/tags" && method == NanoHTTPD.Method.POST -> {
+                playlistHandler.addTagToPlaylist(session)
             }
-            uri.matches(Regex("^/api/playlists/\\d+$")) && method == NanoHTTPD.Method.PUT -> {
-                val id = uri.split("/").last().toLong()
-                playlistHandler.updatePlaylist(id, session)
+            uri.matches(Regex("^/api/playlist/tags/\\d+$")) && method == NanoHTTPD.Method.PUT -> {
+                val tagId = uri.split("/").last().toLong()
+                playlistHandler.updatePlaylistTag(tagId, session)
             }
-            uri.matches(Regex("^/api/playlists/\\d+$")) && method == NanoHTTPD.Method.DELETE -> {
-                val id = uri.split("/").last().toLong()
-                playlistHandler.deletePlaylist(id)
+            uri.matches(Regex("^/api/playlist/tags/\\d+$")) && method == NanoHTTPD.Method.DELETE -> {
+                val tagId = uri.split("/").last().toLong()
+                playlistHandler.removeTagFromPlaylist(tagId)
             }
-            uri.matches(Regex("^/api/playlists/\\d+/items$")) && method == NanoHTTPD.Method.GET -> {
-                val id = uri.split("/")[3].toLong()
-                playlistHandler.getPlaylistItems(id)
+            uri == "/api/playlist/play" && method == NanoHTTPD.Method.POST -> {
+                playlistHandler.playPlaylist(-1)
             }
-            uri.matches(Regex("^/api/playlists/\\d+/items$")) && method == NanoHTTPD.Method.POST -> {
-                val id = uri.split("/")[3].toLong()
-                playlistHandler.addItemToPlaylist(id, session)
-            }
-            uri.matches(Regex("^/api/playlists/\\d+/items/\\d+$")) && method == NanoHTTPD.Method.DELETE -> {
-                val playlistId = uri.split("/")[3].toLong()
-                val mediaId = uri.split("/")[5].toLong()
-                playlistHandler.removeItemFromPlaylist(playlistId, mediaId)
-            }
-            uri.matches(Regex("^/api/playlists/\\d+/play$")) && method == NanoHTTPD.Method.POST -> {
-                val id = uri.split("/")[3].toLong()
-                playlistHandler.playPlaylist(id)
-            }
-            uri.matches(Regex("^/api/playlists/\\d+/stop$")) && method == NanoHTTPD.Method.POST -> {
+            uri == "/api/playlist/stop" && method == NanoHTTPD.Method.POST -> {
                 playlistHandler.stopPlaylist()
             }
             

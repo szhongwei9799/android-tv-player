@@ -5,6 +5,7 @@ import android.content.Intent
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase
+import com.multimediaplayer.data.database.TagWithSettings
 import com.multimediaplayer.data.models.*
 import com.multimediaplayer.utils.AppLogger
 import fi.iki.elonen.NanoHTTPD
@@ -17,71 +18,82 @@ class PlaylistHandler(
 ) {
     private val gson = Gson()
     
-    fun getPlaylistList(): NanoHTTPD.Response {
-        val playlists: List<Playlist> = runBlocking { database.playlistDao().getAllPlaylists().first() }
+    fun getDefaultPlaylist(): NanoHTTPD.Response {
+        val playlist = runBlocking { database.playlistDao().ensureDefaultPlaylist() }
+        val tags = runBlocking { database.playlistDao().getPlaylistTags(playlist.id) }
         
-        val playlistsWithCount = runBlocking {
-            playlists.map { playlist ->
-                val count = if (playlist.type == PlaylistType.TAG_BASED) {
-                    val tagIds = database.playlistDao().getPlaylistTags(playlist.id).map { it.tagId }
-                    if (tagIds.isEmpty()) 0
-                    else database.tagDao().getMediaByTagIds(tagIds).first().size
-                } else {
-                    database.playlistDao().getPlaylistItemCount(playlist.id)
-                }
-                PlaylistWithCount(
-                    playlist.id,
-                    playlist.name,
-                    playlist.description,
-                    playlist.type,
-                    playlist.transitionEffect,
-                    playlist.playMode,
-                    playlist.loopCount,
-                    count
-                )
-            }
+        val tagDetails = tags.map { pt ->
+            val tag = database.tagDao().getTagById(pt.tagId)
+            val count = if (tag != null) database.tagDao().getTagMediaCount(pt.tagId) else 0
+            PlaylistTagResponse(
+                tagId = pt.tagId,
+                name = tag?.name ?: "未知",
+                color = tag?.color ?: "#999999",
+                sortOrder = pt.sortOrder,
+                playMode = pt.playMode,
+                loopCount = pt.loopCount,
+                mediaCount = count
+            )
         }
         
-        return successResponse(playlistsWithCount)
+        return successResponse(mapOf(
+            "playlist" to playlist,
+            "tags" to tagDetails
+        ))
     }
     
-    fun getPlaylist(id: Long): NanoHTTPD.Response {
-        val playlist = runBlocking { database.playlistDao().getPlaylistById(id) }
-            ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
-        return successResponse(playlist)
-    }
-    
-    fun createPlaylist(session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
+    fun updatePlaylistSettings(session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
         val body = parseBody(session)
         val data = try {
             gson.fromJson(body, JsonObject::class.java)
         } catch (e: Exception) {
-            return errorResponse("Invalid playlist data")
+            return errorResponse("Invalid data")
         }
         
-        val name = data.get("name")?.asString
-            ?: return errorResponse("name is required")
+        val playlist = runBlocking { database.playlistDao().ensureDefaultPlaylist() }
         
-        val playlist = Playlist(
-            name = name,
-            description = data.get("description")?.asString,
-            type = try {
-                PlaylistType.valueOf(data.get("type")?.asString ?: "MANUAL")
-            } catch (e: Exception) {
-                PlaylistType.MANUAL
-            },
-            sortOrder = try {
-                SortOrder.valueOf(data.get("sortOrder")?.asString ?: "MANUAL")
-            } catch (e: Exception) {
-                SortOrder.MANUAL
-            },
+        val updated = playlist.copy(
+            name = data.get("name")?.asString ?: playlist.name,
+            description = data.get("description")?.asString ?: playlist.description,
             transitionEffect = try {
-                TransitionType.valueOf(data.get("transitionEffect")?.asString ?: "FADE")
+                TransitionType.valueOf(data.get("transitionEffect")?.asString ?: playlist.transitionEffect.name)
             } catch (e: Exception) {
-                TransitionType.FADE
+                playlist.transitionEffect
             },
-            defaultInterval = data.get("defaultInterval")?.asInt ?: 10,
-            isDefault = data.get("isDefault")?.asBoolean ?: false,
+            defaultInterval = data.get("defaultInterval")?.asInt ?: playlist.defaultInterval,
+            tagPlayMode = try {
+                PlayMode.valueOf(data.get("tagPlayMode")?.asString ?: playlist.tagPlayMode.name)
+            } catch (e: Exception) {
+                playlist.tagPlayMode
+            },
+            tagLoopCount = data.get("tagLoopCount")?.asInt ?: playlist.tagLoopCount,
+            updatedAt = System.currentTimeMillis()
+        )
+        
+        runBlocking { database.playlistDao().updatePlaylist(updated) }
+        AppLogger.i("PlaylistHandler", "Updated playlist settings")
+        return successResponse(updated)
+    }
+    
+    fun addTagToPlaylist(session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
+        val body = parseBody(session)
+        val data = try {
+            gson.fromJson(body, JsonObject::class.java)
+        } catch (e: Exception) {
+            return errorResponse("Invalid data")
+        }
+        
+        val tagId = data.get("tagId")?.asLong
+            ?: return errorResponse("tagId is required")
+        
+        val playlist = runBlocking { database.playlistDao().ensureDefaultPlaylist() }
+        val tags = runBlocking { database.playlistDao().getPlaylistTags(playlist.id) }
+        val maxOrder = tags.maxOfOrNull { it.sortOrder } ?: -1
+        
+        val pt = PlaylistTag(
+            playlistId = playlist.id,
+            tagId = tagId,
+            sortOrder = maxOrder + 1,
             playMode = try {
                 PlayMode.valueOf(data.get("playMode")?.asString ?: "SEQUENTIAL")
             } catch (e: Exception) {
@@ -90,146 +102,74 @@ class PlaylistHandler(
             loopCount = data.get("loopCount")?.asInt ?: -1
         )
         
-        val id = runBlocking { database.playlistDao().insertPlaylist(playlist) }
-        
-        // 添加标签关联（如果是TAG_BASED类型）
-        if (playlist.type == PlaylistType.TAG_BASED) {
-            val tagIds = data.getAsJsonArray("tagIds")?.map { it.asLong } ?: emptyList()
-            runBlocking { database.playlistDao().setPlaylistTags(id, tagIds) }
-        }
-        
-        AppLogger.i("PlaylistHandler", "Created playlist #$id '${playlist.name}' type=${playlist.type}")
-        return successResponse(mapOf("id" to id))
+        runBlocking { database.playlistDao().insertPlaylistTag(pt) }
+        AppLogger.i("PlaylistHandler", "Added tag #$tagId to default playlist")
+        return successResponse()
     }
     
-    fun updatePlaylist(id: Long, session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
+    fun updatePlaylistTag(tagId: Long, session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
         val body = parseBody(session)
         val data = try {
             gson.fromJson(body, JsonObject::class.java)
         } catch (e: Exception) {
-            return errorResponse("Invalid playlist data")
+            return errorResponse("Invalid data")
         }
         
-        val existingPlaylist = runBlocking { database.playlistDao().getPlaylistById(id) }
-            ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
+        val playlist = runBlocking { database.playlistDao().ensureDefaultPlaylist() }
+        val tags = runBlocking { database.playlistDao().getPlaylistTags(playlist.id) }
+        val existing = tags.find { it.tagId == tagId }
+            ?: return errorResponse("Tag not found in playlist", NanoHTTPD.Response.Status.NOT_FOUND)
         
-        val updatedPlaylist = existingPlaylist.copy(
-            name = data.get("name")?.asString ?: existingPlaylist.name,
-            description = data.get("description")?.asString ?: existingPlaylist.description,
-            type = try {
-                PlaylistType.valueOf(data.get("type")?.asString ?: existingPlaylist.type.name)
-            } catch (e: Exception) {
-                existingPlaylist.type
-            },
-            sortOrder = try {
-                SortOrder.valueOf(data.get("sortOrder")?.asString ?: existingPlaylist.sortOrder.name)
-            } catch (e: Exception) {
-                existingPlaylist.sortOrder
-            },
-            transitionEffect = try {
-                TransitionType.valueOf(data.get("transitionEffect")?.asString ?: existingPlaylist.transitionEffect.name)
-            } catch (e: Exception) {
-                existingPlaylist.transitionEffect
-            },
-            defaultInterval = data.get("defaultInterval")?.asInt ?: existingPlaylist.defaultInterval,
-            isDefault = data.get("isDefault")?.asBoolean ?: existingPlaylist.isDefault,
+        val updated = existing.copy(
+            sortOrder = data.get("sortOrder")?.asInt ?: existing.sortOrder,
             playMode = try {
-                PlayMode.valueOf(data.get("playMode")?.asString ?: existingPlaylist.playMode.name)
+                PlayMode.valueOf(data.get("playMode")?.asString ?: existing.playMode.name)
             } catch (e: Exception) {
-                existingPlaylist.playMode
+                existing.playMode
             },
-            loopCount = data.get("loopCount")?.asInt ?: existingPlaylist.loopCount,
-            updatedAt = System.currentTimeMillis()
+            loopCount = data.get("loopCount")?.asInt ?: existing.loopCount
         )
         
-        runBlocking { database.playlistDao().updatePlaylist(updatedPlaylist) }
-        
-        // 更新标签关联
-        if (data.has("tagIds")) {
-            val tagIds = data.getAsJsonArray("tagIds")?.map { it.asLong } ?: emptyList()
-            runBlocking { database.playlistDao().setPlaylistTags(id, tagIds) }
-        }
-        
-        AppLogger.i("PlaylistHandler", "Updated playlist #$id '${updatedPlaylist.name}'")
-        return successResponse(updatedPlaylist)
-    }
-    
-    fun deletePlaylist(id: Long): NanoHTTPD.Response {
-        val playlist = runBlocking { database.playlistDao().getPlaylistById(id) }
-            ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
-        
         runBlocking {
-            database.playlistDao().deletePlaylist(playlist)
-            database.playlistDao().deleteAllPlaylistItems(id)
-            database.playlistDao().deleteAllPlaylistTags(id)
+            database.playlistDao().deletePlaylistTagById(playlist.id, tagId)
+            database.playlistDao().insertPlaylistTag(updated)
         }
-        
-        AppLogger.i("PlaylistHandler", "Deleted playlist #$id '${playlist.name}'")
+        AppLogger.i("PlaylistHandler", "Updated tag #$tagId in playlist")
         return successResponse()
     }
     
-    fun getPlaylistItems(playlistId: Long): NanoHTTPD.Response {
-        val playlist = runBlocking { database.playlistDao().getPlaylistById(playlistId) }
-            ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
+    fun removeTagFromPlaylist(tagId: Long): NanoHTTPD.Response {
+        val playlist = runBlocking { database.playlistDao().ensureDefaultPlaylist() }
+        runBlocking { database.playlistDao().deletePlaylistTagById(playlist.id, tagId) }
+        AppLogger.i("PlaylistHandler", "Removed tag #$tagId from default playlist")
+        return successResponse()
+    }
+    
+    fun getPlaylistMedia(playlistId: Long): NanoHTTPD.Response {
+        val tags = runBlocking { database.playlistDao().getPlaylistTags(playlistId) }
+        val tagIds = tags.map { it.tagId }
         
-        val mediaList = runBlocking {
-            if (playlist.type == PlaylistType.TAG_BASED) {
-                val tagIds = database.playlistDao().getPlaylistTags(playlistId).map { it.tagId }
-                if (tagIds.isEmpty()) emptyList()
-                else database.tagDao().getMediaByTagIds(tagIds).first()
-            } else {
-                val items = database.playlistDao().getPlaylistItems(playlistId)
-                items.mapNotNull { item ->
-                    database.mediaDao().getMediaById(item.mediaId)
-                }
+        val tagMedia = tags.map { pt ->
+            val mediaList = runBlocking {
+                database.tagDao().getMediaByTagId(pt.tagId).first()
             }
+            mapOf(
+                "tagId" to pt.tagId,
+                "playMode" to pt.playMode,
+                "loopCount" to pt.loopCount,
+                "media" to mediaList
+            )
         }
         
-        return successResponse(mediaList)
-    }
-    
-    fun addItemToPlaylist(playlistId: Long, session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
-        val body = parseBody(session)
-        val data = try {
-            gson.fromJson(body, JsonObject::class.java)
-        } catch (e: Exception) {
-            return errorResponse("Invalid request data")
-        }
-        
-        val mediaId = data.get("mediaId")?.asLong
-            ?: return errorResponse("mediaId is required")
-        
-        val playlist = runBlocking { database.playlistDao().getPlaylistById(playlistId) }
-            ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
-        
-        val media = runBlocking { database.mediaDao().getMediaById(mediaId) }
-            ?: return errorResponse("Media not found", NanoHTTPD.Response.Status.NOT_FOUND)
-        
-        val currentItems = runBlocking { database.playlistDao().getPlaylistItems(playlistId) }
-        val maxOrder = currentItems.maxOfOrNull { it.sortOrder } ?: 0
-        
-        val item = PlaylistItem(
-            playlistId = playlistId,
-            mediaId = mediaId,
-            sortOrder = data.get("sortOrder")?.asInt ?: (maxOrder + 1)
-        )
-        
-        runBlocking { database.playlistDao().insertPlaylistItem(item) }
-        AppLogger.i("PlaylistHandler", "Added media #$mediaId to playlist #$playlistId")
-        return successResponse()
-    }
-    
-    fun removeItemFromPlaylist(playlistId: Long, mediaId: Long): NanoHTTPD.Response {
-        runBlocking {
-            database.playlistDao().deletePlaylistItemById(playlistId, mediaId)
-        }
-        AppLogger.i("PlaylistHandler", "Removed media #$mediaId from playlist #$playlistId")
-        return successResponse()
+        return successResponse(tagMedia)
     }
     
     fun playPlaylist(id: Long): NanoHTTPD.Response {
-        val playlist = runBlocking { database.playlistDao().getPlaylistById(id) }
-            ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
+        val playlist = runBlocking {
+            if (id == -1L) database.playlistDao().ensureDefaultPlaylist()
+            else database.playlistDao().getPlaylistById(id)
+                ?: return@runBlocking null
+        } ?: return errorResponse("Playlist not found", NanoHTTPD.Response.Status.NOT_FOUND)
         
         try {
             val intent = Intent("com.multimediaplayer.PLAY").apply {
@@ -241,10 +181,9 @@ class PlaylistHandler(
             return errorResponse("Failed to start playback: ${e.message}")
         }
         
-        AppLogger.i("PlaylistHandler", "Started playback of playlist #${playlist.id} '${playlist.name}'")
+        AppLogger.i("PlaylistHandler", "Started playback of playlist #${playlist.id}")
         return successResponse(mapOf(
             "playlistId" to playlist.id,
-            "name" to playlist.name,
             "message" to "Playback started"
         ))
     }
@@ -305,12 +244,11 @@ class PlaylistHandler(
         return NanoHTTPD.newFixedLengthResponse(status, "application/json; charset=utf-8", json.toString())
     }
     
-    data class PlaylistWithCount(
-        val id: Long,
+    data class PlaylistTagResponse(
+        val tagId: Long,
         val name: String,
-        val description: String?,
-        val type: PlaylistType,
-        val transitionEffect: TransitionType,
+        val color: String,
+        val sortOrder: Int,
         val playMode: PlayMode,
         val loopCount: Int,
         val mediaCount: Int

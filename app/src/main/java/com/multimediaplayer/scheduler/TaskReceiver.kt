@@ -19,6 +19,7 @@ class TaskReceiver : BroadcastReceiver() {
         val taskId = intent.getLongExtra("task_id", -1)
         val taskType = intent.getStringExtra("task_type")
         val playlistId = intent.getLongExtra("playlist_id", -1)
+        val durationMinutes = if (intent.hasExtra("duration_minutes")) intent.getIntExtra("duration_minutes", -1) else -1
         
         if (taskId == -1L || taskType == null) {
             return
@@ -27,14 +28,16 @@ class TaskReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             val database = AppDatabase.getDatabase(context)
             
-            // 记录任务执行
-            // TODO: 添加任务执行日志
-            
             // 执行任务
             when (taskType) {
                 TaskType.PLAY.name -> {
+                    // 先停止当前播放
+                    val stopIntent = Intent("com.multimediaplayer.STOP")
+                    context.sendBroadcast(stopIntent)
+
                     val playIntent = Intent("com.multimediaplayer.PLAY").apply {
                         putExtra("playlist_id", playlistId)
+                        putExtra("duration_minutes", durationMinutes)
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(playIntent)

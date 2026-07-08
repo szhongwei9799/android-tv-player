@@ -3,20 +3,6 @@ package com.multimediaplayer.data.models
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-enum class PlaylistType {
-    MANUAL,     // 手动添加媒体
-    TAG_BASED   // 基于标签动态生成
-}
-
-enum class SortOrder {
-    MANUAL,     // 手动排序
-    NAME_ASC,   // 名称升序
-    NAME_DESC,  // 名称降序
-    DATE_ASC,   // 创建时间升序
-    DATE_DESC,  // 创建时间降序
-    RANDOM      // 随机
-}
-
 enum class TransitionType {
     NONE,           // 无转场
     FADE,           // 淡入淡出
@@ -43,27 +29,14 @@ enum class PlayMode {
 data class Playlist(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val name: String,
+    val name: String = "默认播放列表",
     val description: String? = null,
-    val type: PlaylistType = PlaylistType.MANUAL,
-    val sortOrder: SortOrder = SortOrder.MANUAL,
     val transitionEffect: TransitionType = TransitionType.FADE,
-    val defaultInterval: Int = 10,  // 默认显示间隔（秒）
-    val isDefault: Boolean = false,
-    val playMode: PlayMode = PlayMode.SEQUENTIAL,
-    val loopCount: Int = -1,  // -1=无限循环, 0=播放一次, N=循环N次
+    val defaultInterval: Int = 10,
+    val tagPlayMode: PlayMode = PlayMode.SEQUENTIAL,
+    val tagLoopCount: Int = -1,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
-)
-
-@Entity(
-    tableName = "playlist_items",
-    primaryKeys = ["playlistId", "mediaId"]
-)
-data class PlaylistItem(
-    val playlistId: Long,
-    val mediaId: Long,
-    val sortOrder: Int = 0
 )
 
 @Entity(
@@ -72,5 +45,8 @@ data class PlaylistItem(
 )
 data class PlaylistTag(
     val playlistId: Long,
-    val tagId: Long
+    val tagId: Long,
+    val sortOrder: Int = 0,
+    val playMode: PlayMode = PlayMode.SEQUENTIAL,
+    val loopCount: Int = -1
 )

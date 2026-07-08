@@ -15,11 +15,13 @@ class PlayerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val playlistId = intent.getLongExtra("playlist_id", -1)
+        val durationMinutes = if (intent.hasExtra("duration_minutes")) intent.getIntExtra("duration_minutes", -1) else -1
 
         setContent {
             MediaPlayerTheme {
                 PlayerScreen(
                     playlistId = playlistId,
+                    durationMinutes = if (durationMinutes > 0) durationMinutes else null,
                     onBack = { finish() }
                 )
             }

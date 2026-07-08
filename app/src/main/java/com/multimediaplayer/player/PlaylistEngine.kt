@@ -6,6 +6,7 @@ import com.multimediaplayer.data.models.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class PlaylistEngine(private val context: Context) {
@@ -14,6 +15,11 @@ class PlaylistEngine(private val context: Context) {
     
     private val _currentPlaylist = MutableStateFlow<Playlist?>(null)
     val currentPlaylist: StateFlow<Playlist?> = _currentPlaylist.asStateFlow()
+    
+    private val _currentTag = MutableStateFlow<PlaylistTag?>(null)
+    val currentTag: StateFlow<PlaylistTag?> = _currentTag.asStateFlow()
+    
+    private val _tags = MutableStateFlow<List<PlaylistTag>>(emptyList())
     
     private val _mediaList = MutableStateFlow<List<Media>>(emptyList())
     val mediaList: StateFlow<List<Media>> = _mediaList.asStateFlow()
@@ -27,23 +33,31 @@ class PlaylistEngine(private val context: Context) {
     private val _currentMedia = MutableStateFlow<Media?>(null)
     val currentMedia: StateFlow<Media?> = _currentMedia.asStateFlow()
     
+    private var currentTagIndex = 0
     private var shuffleOrder = mutableListOf<Int>()
     private var loopCompleted = 0
+    private var tagLoopCompleted = 0
     
     suspend fun loadPlaylist(playlistId: Long) {
         val playlist = database.playlistDao().getPlaylistById(playlistId)
         _currentPlaylist.value = playlist
         
-        val media = when (playlist?.type) {
-            PlaylistType.MANUAL -> {
-                loadManualPlaylist(playlistId)
-            }
-            PlaylistType.TAG_BASED -> {
-                loadTagBasedPlaylist(playlistId)
-            }
-            else -> emptyList()
+        val tags = database.playlistDao().getPlaylistTags(playlistId)
+        _tags.value = tags
+        
+        if (tags.isEmpty()) {
+            _mediaList.value = emptyList()
+            _currentMedia.value = null
+            return
         }
         
+        currentTagIndex = 0
+        loadTagMedia(tags[0])
+    }
+    
+    private suspend fun loadTagMedia(tag: PlaylistTag) {
+        _currentTag.value = tag
+        val media = database.tagDao().getMediaByTagId(tag.tagId).first()
         _mediaList.value = media
         _currentIndex.value = 0
         _currentMedia.value = media.firstOrNull()
@@ -57,45 +71,62 @@ class PlaylistEngine(private val context: Context) {
         shuffleOrder.shuffle()
     }
     
-    private suspend fun loadManualPlaylist(playlistId: Long): List<Media> {
-        val items = database.playlistDao().getPlaylistItems(playlistId)
-        return items.mapNotNull { item ->
-            database.mediaDao().getMediaById(item.mediaId)
-        }
-    }
-    
-    private suspend fun loadTagBasedPlaylist(playlistId: Long): List<Media> {
-        val playlistTags = database.playlistDao().getPlaylistTags(playlistId)
-        val tagIds = playlistTags.map { it.tagId }
+    fun next(): Boolean {
+        val tag = _currentTag.value ?: return false
+        val media = _mediaList.value
+        if (media.isEmpty()) return false
         
-        if (tagIds.isEmpty()) return emptyList()
+        val nextIdx = getNextIndex()
         
-        return database.tagDao().getMediaByTagIds(tagIds).let { flow ->
-            var mediaList = emptyList<Media>()
-            flow.collect { media ->
-                mediaList = media
-            }
-            mediaList
+        if (nextIdx < media.size) {
+            _currentIndex.value = nextIdx
+            _currentMedia.value = media[nextIdx]
+            return true
         }
+        
+        // 当前标签播完，前进到下一个标签
+        return advanceToNextTag()
     }
     
-    fun getPlaybackIndex(mediaIndex: Int): Int {
-        val playlist = _currentPlaylist.value ?: return mediaIndex
-        return when (playlist.playMode) {
-            PlayMode.SHUFFLE -> {
-                if (mediaIndex < shuffleOrder.size) shuffleOrder[mediaIndex]
-                else mediaIndex
+    private fun advanceToNextTag(): Boolean {
+        val tags = _tags.value
+        val playlist = _currentPlaylist.value ?: return false
+        if (tags.isEmpty()) return false
+        
+        val isLastTag = currentTagIndex >= tags.size - 1
+        
+        if (isLastTag) {
+            tagLoopCompleted++
+            if (playlist.tagLoopCount != -1 && tagLoopCompleted >= playlist.tagLoopCount) {
+                return false  // 所有标签循环结束
             }
-            else -> mediaIndex
+            currentTagIndex = 0
+        } else {
+            currentTagIndex++
         }
+        
+        runBlocking { loadTagMedia(tags[currentTagIndex]) }
+        return true
     }
     
-    fun getNextIndex(): Int {
-        val playlist = _currentPlaylist.value ?: return _currentIndex.value + 1
+    private fun getNextIndex(): Int {
+        val tag = _currentTag.value ?: return _currentIndex.value + 1
         val size = _mediaList.value.size
-        if (size == 0) return 0
+        if (size == 0) return Int.MAX_VALUE
         
-        return when (playlist.playMode) {
+        val isLast = when (tag.playMode) {
+            PlayMode.SHUFFLE -> shuffleOrder.indexOf(_currentIndex.value) >= size - 1
+            else -> _currentIndex.value >= size - 1
+        }
+        
+        if (isLast) {
+            loopCompleted++
+            if (tag.loopCount != -1 && loopCompleted >= tag.loopCount) {
+                return Int.MAX_VALUE  // 当前标签循环结束，触发下一个标签
+            }
+        }
+        
+        return when (tag.playMode) {
             PlayMode.RANDOM -> {
                 var next = _currentIndex.value
                 while (next == _currentIndex.value && size > 1) {
@@ -115,36 +146,12 @@ class PlaylistEngine(private val context: Context) {
         }
     }
     
-    fun shouldLoop(): Boolean {
-        val playlist = _currentPlaylist.value ?: return true
-        val size = _mediaList.value.size
-        if (size <= 1) return false
-        val isLastItem = (_currentIndex.value >= size - 1) ||
-            (playlist.playMode == PlayMode.SHUFFLE && shuffleOrder.indexOf(_currentIndex.value) >= size - 1)
-        if (!isLastItem) return true
-        
-        loopCompleted++
-        return when {
-            playlist.loopCount == -1 -> true
-            loopCompleted < playlist.loopCount -> true
-            else -> false
-        }
-    }
-    
-    fun next() {
-        if (_mediaList.value.isEmpty()) return
-        val nextIdx = getNextIndex()
-        _currentIndex.value = nextIdx
-        _currentMedia.value = _mediaList.value.getOrNull(nextIdx)
-    }
-    
     fun previous() {
-        val currentIdx = _currentIndex.value
+        val idx = _currentIndex.value
         val media = _mediaList.value
-        
-        if (currentIdx > 0) {
-            _currentIndex.value = currentIdx - 1
-            _currentMedia.value = media[currentIdx - 1]
+        if (idx > 0 && media.isNotEmpty()) {
+            _currentIndex.value = idx - 1
+            _currentMedia.value = media[idx - 1]
         }
     }
     

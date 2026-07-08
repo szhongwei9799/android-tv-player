@@ -31,8 +31,7 @@ class SystemHandler(
             val mediaCount = runBlocking { database.mediaDao().getMediaCount().first() }
             addProperty("mediaCount", mediaCount)
             
-            val playlistCount = runBlocking { database.playlistDao().getPlaylistCount().first() }
-            addProperty("playlistCount", playlistCount)
+            addProperty("playlistCount", 1)
             
             val taskCount = runBlocking { database.taskDao().getTaskCount().first() }
             addProperty("taskCount", taskCount)
