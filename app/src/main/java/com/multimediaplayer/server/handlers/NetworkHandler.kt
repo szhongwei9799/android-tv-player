@@ -16,10 +16,10 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
-import javax.xml.parsers.DocumentBuilderFactory
 import org.w3c.dom.Document
 import java.io.ByteArrayInputStream
+import java.util.concurrent.TimeUnit
+import javax.xml.parsers.DocumentBuilderFactory
 
 class NetworkHandler(
     private val database: AppDatabase,
@@ -49,8 +49,10 @@ class NetworkHandler(
                 ))
             }
 
-            successResponse(files.sortedByDescending { it["isDirectory"] as Boolean }
-                .thenBy { it["name"] as String })
+            successResponse(files.sortedWith(
+                compareByDescending<Map<String, Any>> { it["isDirectory"] as Boolean }
+                    .thenBy { it["name"] as String }
+            ))
         } catch (e: Exception) {
             errorResponse("Failed to browse SMB: ${e.message}")
         }
@@ -81,8 +83,10 @@ class NetworkHandler(
             }
 
             client.logout()
-            successResponse(files.sortedByDescending { it["isDirectory"] as Boolean }
-                .thenBy { it["name"] as String })
+            successResponse(files.sortedWith(
+                compareByDescending<Map<String, Any>> { it["isDirectory"] as Boolean }
+                    .thenBy { it["name"] as String }
+            ))
         } catch (e: Exception) {
             errorResponse("Failed to browse FTP: ${e.message}")
         } finally {
@@ -138,42 +142,18 @@ class NetworkHandler(
 
             for (i in 0 until responses.length) {
                 val resp = responses.item(i)
-                val href = resp.firstChild?.textContent ?: continue
+                val href = getChildTextContent(resp, "DAV:href") ?: continue
+                if (href.isEmpty()) continue
+
                 val hrefStr = href.trimEnd('/')
                 val name = hrefStr.substringAfterLast("/")
-
                 if (name.isEmpty() || href == baseUrl.trimEnd('/') + "/") continue
 
-                val propstat = resp.childNodes.let { nodes ->
-                    (0 until nodes.length).map { nodes.item(it) }
-                        .firstOrNull { it.nodeName == "DAV:propstat" }
-                }
-
-                val isCollection = propstat?.let { ps ->
-                    val props = ps.childNodes.let { n ->
-                        (0 until n.length).map { n.item(it) }
-                            .firstOrNull { it.nodeName == "DAV:prop" }
-                    }
-                    props?.childNodes?.let { cn ->
-                        (0 until cn.length).any { cn.item(it).nodeName == "DAV:resourcetype" && cn.item(it).textContent.contains("collection") }
-                    }
-                } ?: false
-
-                val contentLength = propstat?.let { ps ->
-                    val props = ps.childNodes.let { n ->
-                        (0 until n.length).map { n.item(it) }
-                            .firstOrNull { it.nodeName == "DAV:prop" }
-                    }
-                    props?.childNodes?.let { cn ->
-                        (0 until cn.length)
-                            .firstOrNull { cn.item(it).nodeName == "DAV:getcontentlength" }
-                            ?.textContent?.toLongOrNull()
-                    }
-                } ?: 0L
+                val isCollection = hasChildWithTag(resp, "DAV:propstat", "DAV:prop", "DAV:resourcetype", "DAV:collection")
+                val contentLength = getChildTextContentDeep(resp, "DAV:propstat", "DAV:prop", "DAV:getcontentlength")?.toLongOrNull() ?: 0L
 
                 val fullUrl = if (href.startsWith("http")) href else {
-                    val base = baseUrl.trimEnd('/')
-                    "$base/$name"
+                    "${baseUrl.trimEnd('/')}/${name}"
                 }
 
                 files.add(mapOf(
@@ -185,6 +165,65 @@ class NetworkHandler(
             }
         } catch (_: Exception) {}
         return files
+    }
+
+    private fun getChildTextContent(parent: org.w3c.dom.Node, tagName: String): String? {
+        val children = parent.childNodes
+        for (j in 0 until children.length) {
+            val child = children.item(j)
+            if (child.nodeName == tagName || child.localName == tagName.substringAfter(":")) {
+                return getNodeText(child)
+            }
+        }
+        return null
+    }
+
+    private fun getChildTextContentDeep(parent: org.w3c.dom.Node, vararg tags: String): String? {
+        var current = parent
+        for (tag in tags) {
+            val children = current.childNodes
+            var found: org.w3c.dom.Node? = null
+            for (j in 0 until children.length) {
+                val child = children.item(j)
+                if (child.nodeName == tag || child.localName == tag.substringAfter(":")) {
+                    found = child
+                    break
+                }
+            }
+            if (found == null) return null
+            current = found
+        }
+        return getNodeText(current)
+    }
+
+    private fun hasChildWithTag(parent: org.w3c.dom.Node, vararg tags: String): Boolean {
+        var current = parent
+        for (tag in tags) {
+            val children = current.childNodes
+            var found = false
+            for (j in 0 until children.length) {
+                val child = children.item(j)
+                if (child.nodeName == tag || child.localName == tag.substringAfter(":")) {
+                    current = child
+                    found = true
+                    break
+                }
+            }
+            if (!found) return false
+        }
+        return true
+    }
+
+    private fun getNodeText(node: org.w3c.dom.Node): String {
+        val childNodes = node.childNodes
+        val sb = StringBuilder()
+        for (i in 0 until childNodes.length) {
+            val child = childNodes.item(i)
+            if (child.nodeType == org.w3c.dom.Node.TEXT_NODE || child.nodeType == org.w3c.dom.Node.CDATA_SECTION_NODE) {
+                sb.append(child.nodeValue ?: "")
+            }
+        }
+        return sb.toString()
     }
 
     fun importNetworkFile(session: NanoHTTPD.IHTTPSession): NanoHTTPD.Response {
