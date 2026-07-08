@@ -95,23 +95,27 @@ class ApiRouter(
                 tagHandler.deleteTag(id)
             }
             
-            // 播放列表API - 单一播放列表，管理其标签项目
+            // 播放列表API - 单一播放列表，管理项目（项目包含多个标签）
             uri == "/api/playlist" && method == NanoHTTPD.Method.GET -> {
                 playlistHandler.getDefaultPlaylist()
             }
             uri == "/api/playlist" && method == NanoHTTPD.Method.PUT -> {
                 playlistHandler.updatePlaylistSettings(session)
             }
-            uri == "/api/playlist/tags" && method == NanoHTTPD.Method.POST -> {
-                playlistHandler.addTagToPlaylist(session)
+            uri == "/api/playlist/items" && method == NanoHTTPD.Method.POST -> {
+                playlistHandler.createPlaylistItem(session)
             }
-            uri.matches(Regex("^/api/playlist/tags/\\d+$")) && method == NanoHTTPD.Method.PUT -> {
-                val tagId = uri.split("/").last().toLong()
-                playlistHandler.updatePlaylistTag(tagId, session)
+            uri.matches(Regex("^/api/playlist/items/\\d+$")) && method == NanoHTTPD.Method.PUT -> {
+                val itemId = uri.split("/").last().toLong()
+                playlistHandler.updatePlaylistItem(itemId, session)
             }
-            uri.matches(Regex("^/api/playlist/tags/\\d+$")) && method == NanoHTTPD.Method.DELETE -> {
-                val tagId = uri.split("/").last().toLong()
-                playlistHandler.removeTagFromPlaylist(tagId)
+            uri.matches(Regex("^/api/playlist/items/\\d+$")) && method == NanoHTTPD.Method.DELETE -> {
+                val itemId = uri.split("/").last().toLong()
+                playlistHandler.deletePlaylistItem(itemId)
+            }
+            uri.matches(Regex("^/api/playlist/items/\\d+/tags$")) && method == NanoHTTPD.Method.PUT -> {
+                val itemId = uri.split("/")[4].toLong()
+                playlistHandler.replaceItemTags(itemId, session)
             }
             uri == "/api/playlist/play" && method == NanoHTTPD.Method.POST -> {
                 playlistHandler.playPlaylist(-1)

@@ -59,8 +59,10 @@ fun PlayerScreen(
     LaunchedEffect(playlistId) {
         playlist = database.playlistDao().getPlaylistById(playlistId)
         if (playlist != null) {
-            val playlistTags = database.playlistDao().getPlaylistTags(playlistId)
-            val tagIds = playlistTags.map { it.tagId }
+            val items = database.playlistDao().getPlaylistItems(playlistId)
+            val tagIds = items.flatMap { item ->
+                runBlocking { database.playlistDao().getPlaylistItemTags(item.id) }
+            }.map { it.tagId }
             if (tagIds.isNotEmpty()) {
                 database.tagDao().getMediaByTagIds(tagIds).collect { media ->
                     mediaList = media

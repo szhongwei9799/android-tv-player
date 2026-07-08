@@ -29,22 +29,29 @@ enum class PlayMode {
 data class Playlist(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val name: String = "默认播放列表",
-    val description: String? = null,
     val transitionEffect: TransitionType = TransitionType.FADE,
     val defaultInterval: Int = 10,
-    val tagPlayMode: PlayMode = PlayMode.SEQUENTIAL,
-    val tagLoopCount: Int = -1,
+    val itemPlayMode: PlayMode = PlayMode.SEQUENTIAL,
+    val itemLoopCount: Int = -1,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
 
-@Entity(
-    tableName = "playlist_tags",
-    primaryKeys = ["playlistId", "tagId"]
-)
-data class PlaylistTag(
+@Entity(tableName = "playlist_items")
+data class PlaylistItem(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
     val playlistId: Long,
+    val name: String,
+    val sortOrder: Int = 0
+)
+
+@Entity(
+    tableName = "playlist_item_tags",
+    primaryKeys = ["itemId", "tagId"]
+)
+data class PlaylistItemTag(
+    val itemId: Long,
     val tagId: Long,
     val sortOrder: Int = 0,
     val playMode: PlayMode = PlayMode.SEQUENTIAL,

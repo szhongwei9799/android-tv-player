@@ -6,8 +6,8 @@ async function loadPlaylistList() {
     try {
         const r = await utils.request('/playlist');
         playlistData = r.data;
-        if (!playlistData || !playlistData.tags || !playlistData.tags.length) {
-            el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>暂无播放项目</p><p style="font-size:12px;margin-top:6px;">点击右上角「新建播放项目」添加标签到播放列表</p></div>';
+        if (!playlistData || !playlistData.items || !playlistData.items.length) {
+            el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>暂无播放项目</p><p style="font-size:12px;margin-top:6px;">点击右上角「新建播放项目」添加</p></div>';
         } else renderPlaylist();
     } catch(e) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`; showToast(e.message,'error'); }
 }
@@ -21,6 +21,7 @@ const loopOptions = [{-1:'无限'},{0:'一次'},{1:'1次'},{2:'2次'},{3:'3次'}
 
 function renderPlaylist() {
     const pl = playlistData.playlist;
+    const items = playlistData.items || [];
     document.getElementById('playlistList').innerHTML = `
         <div style="margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:10px;">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
@@ -31,15 +32,36 @@ function renderPlaylist() {
                 <span class="setting-item">转场 <select class="setting-select" onchange="updateSetting('transitionEffect',this.value)">
                     ${transitions.map(v => `<option value="${v}" ${pl.transitionEffect===v?'selected':''}>${trLabel(v)}</option>`).join('')}</select></span>
                 <span class="setting-item">间隔 <input type="number" class="setting-num" value="${pl.defaultInterval}" min="1" max="60" onchange="updateSetting('defaultInterval',parseInt(this.value)||10)"><span class="unit">s</span></span>
-                <span class="setting-item">标签 <select class="setting-select" onchange="updateSetting('tagPlayMode',this.value)">
-                    ${playModes.map(v => `<option value="${v}" ${pl.tagPlayMode===v?'selected':''}>${pmLabel(v)}</option>`).join('')}</select></span>
-                <span class="setting-item">循环 <select class="setting-select" onchange="updateSetting('tagLoopCount',parseInt(this.value))">
-                    ${Object.entries(loopOptions).map(([k,v]) => `<option value="${k}" ${pl.tagLoopCount===parseInt(k)?'selected':''}>${v}</option>`).join('')}</select></span>
+                <span class="setting-item">项目 <select class="setting-select" onchange="updateSetting('itemPlayMode',this.value)">
+                    ${playModes.map(v => `<option value="${v}" ${pl.itemPlayMode===v?'selected':''}>${pmLabel(v)}</option>`).join('')}</select></span>
+                <span class="setting-item">循环 <select class="setting-select" onchange="updateSetting('itemLoopCount',parseInt(this.value))">
+                    ${Object.entries(loopOptions).map(([k,v]) => `<option value="${k}" ${pl.itemLoopCount===parseInt(k)?'selected':''}>${v}</option>`).join('')}</select></span>
             </div>
         </div>
-        <div style="font-size:13px;font-weight:600;margin:8px 0;color:var(--text2);">播放项目（标签列表）</div>
-        ${playlistData.tags.map((t,i) => renderTagItem(t,i)).join('')}
+        <div style="font-size:13px;font-weight:600;margin:8px 0;color:var(--text2);">播放项目</div>
+        ${items.map((item, i) => renderItem(item, i)).join('')}
     `;
+}
+
+function renderItem(item, i) {
+    return `<div class="pl-item">
+        <div class="pl-item-head">
+            <span class="pl-item-name">${escHtml(item.name)}</span>
+            <div class="actions">
+                <button class="btn-ghost" onclick="showEditItemModal(${item.id})">编辑</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteItem(${item.id})">删除</button>
+            </div>
+        </div>
+        ${item.tags && item.tags.length ? item.tags.map(t => renderItemTag(t)).join('') : '<div style="font-size:11px;color:var(--muted);padding:4px 10px 6px;">暂无标签</div>'}
+    </div>`;
+}
+
+function renderItemTag(t) {
+    return `<div class="pl-tag" style="border-left-color:${t.color};">
+        <span class="pl-tag-order">${t.sortOrder+1}</span>
+        <span class="pl-tag-name">${escHtml(t.name)}</span>
+        <span class="pl-tag-meta">${t.mediaCount}个媒体 · ${pmLabel(t.playMode)} · ${loopLabel(t.loopCount)}</span>
+    </div>`;
 }
 
 async function updateSetting(field, value) {
@@ -49,100 +71,130 @@ async function updateSetting(field, value) {
     } catch(e) { showToast('保存失败: '+e.message,'error'); }
 }
 
-function renderTagItem(t, i) {
-    return `<div class="list-item" style="border-left:3px solid ${t.color};">
-        <div class="pl-icon">${i+1}</div>
-        <div class="name">${escHtml(t.name)}</div>
-        <div class="meta">${t.mediaCount} 个媒体 · ${pmLabel(t.playMode)} · ${loopLabel(t.loopCount)}</div>
-        <div class="actions">
-            <button class="btn-ghost" onclick="showEditTagModal(${t.tagId})">编辑</button>
-            <button class="btn btn-danger btn-sm" onclick="removeTag(${t.tagId})">移除</button>
-        </div>
-    </div>`;
-}
-
-
-
 function showAddTagModal() {
-    showModal('新建播放项目', `<div class="field"><label>选择标签</label><div class="check-group" id="addTagSelect">加载中...</div></div>
-        <div class="field"><label>内部播放模式</label><select id="addTagPlayMode">
-            <option value="SEQUENTIAL">顺序播放</option><option value="RANDOM">随机播放</option><option value="SHUFFLE">洗牌播放</option></select></div>
-        <div class="field"><label>内部循环次数</label><select id="addTagLoopCount">
-            <option value="-1">无限循环</option><option value="0">播放一次</option>
-            <option value="1">循环1次</option><option value="2">循环2次</option><option value="3">循环3次</option>
-            <option value="5">循环5次</option><option value="10">循环10次</option></select></div>
-        <button class="btn btn-primary" onclick="addTagToPlaylist()">添加</button>`);
-    loadAvailableTags();
+    showModal('新建播放项目', `<div class="field"><label>项目名称</label><input type="text" id="newItemName" placeholder="例如: 上午时段"></div>
+        <div class="field"><label>选择标签</label><div class="check-group" id="addTagSelect">加载中...</div></div>
+        <button class="btn btn-primary" onclick="createItem()">创建</button>`);
+    loadAllTags();
 }
 
-async function loadAvailableTags() {
+async function loadAllTags() {
     try {
-        const [tr, pr] = await Promise.all([utils.request('/tags'), utils.request('/playlist')]);
+        const tr = await utils.request('/tags');
         const allTags = tr.data || [];
-        const existingIds = new Set((pr.data?.tags||[]).map(t => t.tagId));
-        const avail = allTags.filter(t => !existingIds.has(t.id));
-        document.getElementById('addTagSelect').innerHTML = avail.length
-            ? avail.map(t => `<label><input type="radio" name="addTagRadio" value="${t.id}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${t.color}"></span>${escHtml(t.name)}</label>`).join('')
-            : '<span style="color:var(--muted);font-size:12px;">所有标签已在列表中</span>';
+        document.getElementById('addTagSelect').innerHTML = allTags.length
+            ? allTags.map(t => `<label><input type="checkbox" value="${t.id}" data-name="${escHtml(t.name)}" data-color="${t.color}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${t.color}"></span>${escHtml(t.name)}</label>`).join('')
+            : '<span style="color:var(--muted);font-size:12px;">暂无标签，请先在标签管理创建</span>';
     } catch(_) { document.getElementById('addTagSelect').innerHTML = '<span style="color:var(--red);font-size:12px;">加载失败</span>'; }
 }
 
-async function addTagToPlaylist() {
-    const sel = document.querySelector('input[name="addTagRadio"]:checked');
-    if (!sel) { showToast('请选择一个标签','error'); return; }
+async function createItem() {
+    const name = document.getElementById('newItemName').value.trim();
+    if (!name) { showToast('请输入项目名称','error'); return; }
+    const checked = Array.from(document.querySelectorAll('#addTagSelect input:checked'));
+    const tagIds = checked.map(c => parseInt(c.value));
+    if (!tagIds.length) { showToast('请至少选择一个标签','error'); return; }
     try {
-        await utils.request('/playlist/tags', { method: 'POST', body: JSON.stringify({
-            tagId: parseInt(sel.value),
-            playMode: document.getElementById('addTagPlayMode').value,
-            loopCount: parseInt(document.getElementById('addTagLoopCount').value) }) });
-        closeModal(); loadPlaylistList(); showToast('添加成功');
-    } catch(e) { showToast('添加失败: '+e.message,'error'); }
+        await utils.request('/playlist/items', { method: 'POST', body: JSON.stringify({ name, tagIds }) });
+        closeModal(); loadPlaylistList(); showToast('创建成功');
+    } catch(e) { showToast('创建失败: '+e.message,'error'); }
 }
 
-function showEditTagModal(tagId) {
-    const t = playlistData.tags.find(x => x.tagId === tagId);
-    if (!t) return;
-    showModal('编辑播放项目', `<div class="field"><label>标签</label><strong>${escHtml(t.name)}</strong></div>
-        <div class="field"><label>播放模式</label><select id="editTagPlayMode">
-            <option value="SEQUENTIAL" ${t.playMode==='SEQUENTIAL'?'selected':''}>顺序播放</option>
-            <option value="RANDOM" ${t.playMode==='RANDOM'?'selected':''}>随机播放</option>
-            <option value="SHUFFLE" ${t.playMode==='SHUFFLE'?'selected':''}>洗牌播放</option></select></div>
-        <div class="field"><label>循环次数</label><select id="editTagLoopCount">
-            <option value="-1" ${t.loopCount===-1?'selected':''}>无限循环</option>
-            <option value="0" ${t.loopCount===0?'selected':''}>播放一次</option>
-            <option value="1" ${t.loopCount===1?'selected':''}>循环1次</option>
-            <option value="2" ${t.loopCount===2?'selected':''}>循环2次</option>
-            <option value="3" ${t.loopCount===3?'selected':''}>循环3次</option>
-            <option value="5" ${t.loopCount===5?'selected':''}>循环5次</option>
-            <option value="10" ${t.loopCount===10?'selected':''}>循环10次</option></select></div>
-        <button class="btn btn-primary" onclick="updateTag(${tagId})">保存</button>`);
+function showEditItemModal(itemId) {
+    const item = playlistData.items.find(x => x.id === itemId);
+    if (!item) return;
+    const tagsHtml = item.tags && item.tags.length
+        ? item.tags.map((t, i) => `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;font-size:12px;">
+            <span style="flex:0 0 20px;color:var(--muted);">${i+1}.</span>
+            <span style="flex:0 0 12px;height:12px;border-radius:50%;background:${t.color};display:inline-block;"></span>
+            <span style="flex:1;">${escHtml(t.name)}</span>
+            <select onchange="updateItemTag(${itemId},${t.tagId},'playMode',this.value)" style="font-size:11px;padding:1px 3px;background:var(--elev);color:var(--text);border:none;border-radius:3px;">
+                ${playModes.map(v => `<option value="${v}" ${t.playMode===v?'selected':''}>${pmLabel(v)}</option>`).join('')}</select>
+            <select onchange="updateItemTag(${itemId},${t.tagId},'loopCount',parseInt(this.value))" style="font-size:11px;padding:1px 3px;background:var(--elev);color:var(--text);border:none;border-radius:3px;">
+                ${Object.entries(loopOptions).map(([k,v]) => `<option value="${k}" ${t.loopCount===parseInt(k)?'selected':''}>${v}</option>`).join('')}</select>
+            <button class="btn btn-danger btn-sm" style="font-size:10px;padding:1px 6px;" onclick="removeItemTag(${itemId},${t.tagId})">移除</button>
+        </div>`).join('')
+        : '<span style="color:var(--muted);font-size:12px;">暂无标签</span>';
+
+    showModal('编辑项目', `<div class="field"><label>项目名称</label><input type="text" id="editItemName" value="${escHtml(item.name)}"></div>
+        <div class="field"><label>标签列表（可修改次序和循环模式）</label><div style="max-height:200px;overflow-y:auto;">${tagsHtml}</div></div>
+        <div class="field"><label>添加标签</label><div class="check-group" id="editAddTagSelect">加载中...</div></div>
+        <button class="btn btn-primary" onclick="updateItem(${itemId})">保存</button>`);
+    loadEditTags(item);
 }
 
-async function updateTag(tagId) {
+async function loadEditTags(item) {
     try {
-        await utils.request(`/playlist/tags/${tagId}`, { method: 'PUT', body: JSON.stringify({
-            playMode: document.getElementById('editTagPlayMode').value,
-            loopCount: parseInt(document.getElementById('editTagLoopCount').value) }) });
-        closeModal(); loadPlaylistList(); showToast('更新成功');
+        const tr = await utils.request('/tags');
+        const allTags = tr.data || [];
+        const existingIds = new Set((item.tags||[]).map(t => t.tagId));
+        const avail = allTags.filter(t => !existingIds.has(t.id));
+        document.getElementById('editAddTagSelect').innerHTML = avail.length
+            ? avail.map(t => `<label><input type="checkbox" value="${t.id}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${t.color}"></span>${escHtml(t.name)}</label>`).join('')
+            : '<span style="color:var(--muted);font-size:12px;">所有标签已在列表中</span>';
+    } catch(_) { document.getElementById('editAddTagSelect').innerHTML = '<span style="color:var(--red);font-size:12px;">加载失败</span>'; }
+}
+
+async function updateItem(itemId) {
+    const name = document.getElementById('editItemName').value.trim();
+    if (!name) { showToast('请输入项目名称','error'); return; }
+    // 更新名称
+    await utils.request(`/playlist/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ name }) });
+    // 添加新选中的标签
+    const checked = Array.from(document.querySelectorAll('#editAddTagSelect input:checked'));
+    const item = playlistData.items.find(x => x.id === itemId);
+    const existing = (item.tags||[]).map(t => t.tagId);
+    const newTagIds = checked.map(c => parseInt(c.value)).filter(id => !existing.includes(id));
+    if (newTagIds.length) {
+        const allTags = item.tags || [];
+        const maxOrder = allTags.reduce((m, t) => Math.max(m, t.sortOrder), -1);
+        const tagData = newTagIds.map((id, i) => ({ tagId: id, sortOrder: maxOrder + 1 + i, playMode: 'SEQUENTIAL', loopCount: -1 }));
+        const updatedTags = [...allTags.map(t => ({ tagId: t.tagId, sortOrder: t.sortOrder, playMode: t.playMode, loopCount: t.loopCount })), ...tagData];
+        await utils.request(`/playlist/items/${itemId}/tags`, { method: 'PUT', body: JSON.stringify({ tags: updatedTags }) });
+    }
+    closeModal(); loadPlaylistList(); showToast('保存成功');
+}
+
+async function updateItemTag(itemId, tagId, field, value) {
+    const item = playlistData.items.find(x => x.id === itemId);
+    if (!item) return;
+    const allTags = item.tags || [];
+    const tags = allTags.map(t => ({
+        tagId: t.tagId,
+        sortOrder: t.sortOrder,
+        playMode: t.tagId === tagId && field === 'playMode' ? value : t.playMode,
+        loopCount: t.tagId === tagId && field === 'loopCount' ? value : t.loopCount
+    }));
+    try {
+        await utils.request(`/playlist/items/${itemId}/tags`, { method: 'PUT', body: JSON.stringify({ tags }) });
     } catch(e) { showToast('更新失败: '+e.message,'error'); }
 }
 
-async function removeTag(tagId) {
-    if (!await showConfirm('确定从播放列表中移除此标签？媒体文件不会被删除。')) return;
-    try { await utils.request(`/playlist/tags/${tagId}`,{method:'DELETE'}); loadPlaylistList(); showToast('移除成功'); }
-    catch(e) { showToast('移除失败: '+e.message,'error'); }
+async function removeItemTag(itemId, tagId) {
+    const item = playlistData.items.find(x => x.id === itemId);
+    if (!item) return;
+    const tags = (item.tags||[]).filter(t => t.tagId !== tagId).map(t => ({
+        tagId: t.tagId, sortOrder: t.sortOrder, playMode: t.playMode, loopCount: t.loopCount
+    }));
+    try {
+        await utils.request(`/playlist/items/${itemId}/tags`, { method: 'PUT', body: JSON.stringify({ tags }) });
+        showToast('已移除');
+        loadPlaylistList();
+    } catch(e) { showToast('移除失败: '+e.message,'error'); }
+}
+
+async function deleteItem(itemId) {
+    if (!await showConfirm('确定删除此项目？')) return;
+    try { await utils.request(`/playlist/items/${itemId}`,{method:'DELETE'}); loadPlaylistList(); showToast('删除成功'); }
+    catch(e) { showToast('删除失败: '+e.message,'error'); }
 }
 
 async function playPlaylist() {
-    try {
-        await utils.request('/playlist/play', { method: 'POST' });
-        showToast('播放指令已发送');
-    } catch(e) { showToast('播放失败: '+e.message,'error'); }
+    try { await utils.request('/playlist/play', { method: 'POST' }); showToast('播放指令已发送'); }
+    catch(e) { showToast('播放失败: '+e.message,'error'); }
 }
 
 async function stopPlaylist() {
-    try {
-        await utils.request('/playlist/stop', { method: 'POST' });
-        showToast('已发送停止指令');
-    } catch(e) { showToast('停止失败: '+e.message,'error'); }
+    try { await utils.request('/playlist/stop', { method: 'POST' }); showToast('已发送停止指令'); }
+    catch(e) { showToast('停止失败: '+e.message,'error'); }
 }

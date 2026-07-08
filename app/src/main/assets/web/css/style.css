@@ -403,6 +403,13 @@ body{
 }
 .setting-num:focus{outline-color:var(--blue)}
 .setting-item .unit{font-size:10px;color:var(--muted)}
+.pl-item{margin-bottom:8px;background:var(--surf);border-radius:8px;overflow:hidden}
+.pl-item-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card);}
+.pl-item-name{font-size:14px;font-weight:600;color:var(--text)}
+.pl-tag{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-left:3px solid;margin:2px 6px;border-radius:0 4px 4px 0;background:var(--bg);}
+.pl-tag-order{font-size:10px;color:var(--muted);flex-shrink:0;width:14px;text-align:center}
+.pl-tag-name{font-size:12px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-tag-meta{font-size:10px;color:var(--muted);flex-shrink:0}
 
 /* ===== Network Browser ===== */
 .net-toolbar{

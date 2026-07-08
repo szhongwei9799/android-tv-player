@@ -91,7 +91,7 @@ class TagHandler(
         runBlocking {
             // 删除标签关联及标签本身
             database.tagDao().deleteAllMediaTagsForTag(id)
-            database.playlistDao().deleteAllPlaylistTagsByTagId(id)
+            database.playlistDao().deleteAllPlaylistItemTagsByTagId(id)
             database.tagDao().deleteTag(tag)
         }
         

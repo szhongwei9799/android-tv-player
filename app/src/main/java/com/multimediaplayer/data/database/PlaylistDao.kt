@@ -18,34 +18,6 @@ interface PlaylistDao {
     @Update
     suspend fun updatePlaylist(playlist: Playlist)
 
-    // 播放列表-标签关联
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertPlaylistTag(playlistTag: PlaylistTag)
-
-    @Delete
-    suspend fun deletePlaylistTag(playlistTag: PlaylistTag)
-
-    @Query("DELETE FROM playlist_tags WHERE playlistId = :playlistId AND tagId = :tagId")
-    suspend fun deletePlaylistTagById(playlistId: Long, tagId: Long)
-
-    @Query("DELETE FROM playlist_tags WHERE playlistId = :playlistId")
-    suspend fun deleteAllPlaylistTags(playlistId: Long)
-
-    @Query("DELETE FROM playlist_tags WHERE tagId = :tagId")
-    suspend fun deleteAllPlaylistTagsByTagId(tagId: Long)
-
-    @Query("SELECT * FROM playlist_tags WHERE playlistId = :playlistId ORDER BY sortOrder")
-    suspend fun getPlaylistTags(playlistId: Long): List<PlaylistTag>
-
-    @Query("""
-        SELECT t.*, pt.sortOrder, pt.playMode, pt.loopCount 
-        FROM tags t 
-        INNER JOIN playlist_tags pt ON t.id = pt.tagId 
-        WHERE pt.playlistId = :playlistId 
-        ORDER BY pt.sortOrder
-    """)
-    fun getPlaylistTagsWithSettings(playlistId: Long): Flow<List<TagWithSettings>>
-
     @Transaction
     suspend fun ensureDefaultPlaylist(): Playlist {
         var playlist = getDefaultPlaylist()
@@ -55,9 +27,56 @@ interface PlaylistDao {
         }
         return playlist!!
     }
+
+    // === PlaylistItem ===
+    @Query("SELECT * FROM playlist_items WHERE playlistId = :playlistId ORDER BY sortOrder")
+    suspend fun getPlaylistItems(playlistId: Long): List<PlaylistItem>
+
+    @Query("SELECT * FROM playlist_items WHERE id = :id")
+    suspend fun getPlaylistItemById(id: Long): PlaylistItem?
+
+    @Insert
+    suspend fun insertPlaylistItem(item: PlaylistItem): Long
+
+    @Update
+    suspend fun updatePlaylistItem(item: PlaylistItem)
+
+    @Delete
+    suspend fun deletePlaylistItem(item: PlaylistItem)
+
+    // === PlaylistItemTag ===
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPlaylistItemTag(tag: PlaylistItemTag)
+
+    @Query("DELETE FROM playlist_item_tags WHERE itemId = :itemId AND tagId = :tagId")
+    suspend fun deletePlaylistItemTag(itemId: Long, tagId: Long)
+
+    @Query("DELETE FROM playlist_item_tags WHERE tagId = :tagId")
+    suspend fun deleteAllPlaylistItemTagsByTagId(tagId: Long)
+
+    @Query("DELETE FROM playlist_item_tags WHERE itemId = :itemId")
+    suspend fun deleteAllPlaylistItemTags(itemId: Long)
+
+    @Query("SELECT * FROM playlist_item_tags WHERE itemId = :itemId ORDER BY sortOrder")
+    suspend fun getPlaylistItemTags(itemId: Long): List<PlaylistItemTag>
+
+    @Query("""
+        SELECT t.*, pit.sortOrder, pit.playMode, pit.loopCount 
+        FROM tags t 
+        INNER JOIN playlist_item_tags pit ON t.id = pit.tagId 
+        WHERE pit.itemId = :itemId 
+        ORDER BY pit.sortOrder
+    """)
+    fun getItemTagsWithSettings(itemId: Long): Flow<List<ItemTagWithSettings>>
+
+    @Transaction
+    suspend fun replaceItemTags(itemId: Long, tags: List<PlaylistItemTag>) {
+        deleteAllPlaylistItemTags(itemId)
+        tags.forEach { insertPlaylistItemTag(it) }
+    }
 }
 
-data class TagWithSettings(
+data class ItemTagWithSettings(
     val id: Long,
     val name: String,
     val color: String,
