@@ -11,21 +11,26 @@ async function loadPlaylistList() {
     } catch (e) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`; showToast(e.message,'error'); }
 }
 
+function pmLabel(t) { return {SEQUENTIAL:'顺序',RANDOM:'随机',SHUFFLE:'洗牌'}[t]||t; }
+
+function loopLabel(c) { return c===-1?'无限循环':c===0?'播放一次':`循环${c}次`; }
+
+function trLabel(t) { return {NONE:'无',FADE:'淡入淡出',SLIDE_LEFT:'左滑',SLIDE_RIGHT:'右滑',SLIDE_UP:'上滑',SLIDE_DOWN:'下滑',ZOOM_IN:'放大',ZOOM_OUT:'缩小',WIPE_LEFT:'左擦除',WIPE_RIGHT:'右擦除',DISSOLVE:'溶解',BLUR:'模糊',RANDOM:'随机'}[t]||t; }
+
 function renderPlaylistList() {
     document.getElementById('playlistList').innerHTML = playlistList.map(p => `<div class="list-item">
         <div class="pl-icon">▶</div>
         <div class="name">${escHtml(p.name)}</div>
-        <div class="meta">${p.type==='TAG_BASED'?'基于标签':'手动'} · ${p.mediaCount||0} 个媒体 · ${trLabel(p.transitionEffect)}</div>
+        <div class="meta">${p.type==='TAG_BASED'?'基于标签':'手动'} · ${p.mediaCount||0} 个媒体 · ${trLabel(p.transitionEffect)} · ${pmLabel(p.playMode)} · ${loopLabel(p.loopCount)}</div>
         <div class="actions">
             <button class="btn btn-primary btn-sm" onclick="playPlaylist(${p.id})">播放</button>
+            <button class="btn btn-warning btn-sm" onclick="stopPlaylist()">停止</button>
             <button class="btn-ghost" onclick="editPlaylist(${p.id})">编辑</button>
             <button class="btn-ghost" onclick="managePlaylistItems(${p.id})">管理</button>
             <button class="btn btn-danger btn-sm" onclick="deletePlaylist(${p.id})">删除</button>
         </div>
     </div>`).join('');
 }
-
-function trLabel(t) { return {NONE:'无',FADE:'淡入淡出',SLIDE_LEFT:'左滑',SLIDE_RIGHT:'右滑',SLIDE_UP:'上滑',SLIDE_DOWN:'下滑',ZOOM_IN:'放大',ZOOM_OUT:'缩小',WIPE_LEFT:'左擦除',WIPE_RIGHT:'右擦除',DISSOLVE:'溶解',BLUR:'模糊',RANDOM:'随机'}[t]||t; }
 
 function showAddPlaylistModal() {
     showModal('新建播放列表', `<div class="field"><label>名称</label><input type="text" id="playlistName" placeholder="例如: 上午轮播"></div>
@@ -36,6 +41,10 @@ function showAddPlaylistModal() {
         <div class="field"><label>转场</label><select id="playlistTransition">
             ${['FADE','SLIDE_LEFT','SLIDE_RIGHT','ZOOM_IN','ZOOM_OUT','DISSOLVE','RANDOM','NONE'].map(v => `<option value="${v}">${trLabel(v)}</option>`).join('')}</select></div>
         <div class="field"><label>间隔</label><input type="number" id="playlistInterval" value="10" min="1" max="60"><span class="unit">秒</span></div>
+        <div class="field"><label>播放模式</label><select id="playlistPlayMode">
+            <option value="SEQUENTIAL">顺序播放</option><option value="RANDOM">随机播放</option><option value="SHUFFLE">洗牌播放</option></select></div>
+        <div class="field"><label>循环次数</label><select id="playlistLoopCount">
+            <option value="-1">无限循环</option><option value="0">播放一次</option><option value="1">循环1次</option><option value="2">循环2次</option><option value="3">循环3次</option><option value="5">循环5次</option><option value="10">循环10次</option></select></div>
         <button class="btn btn-primary" onclick="createPlaylist()">创建</button>`);
 }
 
@@ -61,7 +70,9 @@ async function createPlaylist() {
         await utils.request('/playlists', { method: 'POST', body: JSON.stringify({
             name: n, description: document.getElementById('playlistDesc').value, type,
             transitionEffect: document.getElementById('playlistTransition').value,
-            defaultInterval: parseInt(document.getElementById('playlistInterval').value), tagIds }) });
+            defaultInterval: parseInt(document.getElementById('playlistInterval').value),
+            playMode: document.getElementById('playlistPlayMode').value,
+            loopCount: parseInt(document.getElementById('playlistLoopCount').value), tagIds }) });
         closeModal(); loadPlaylistList(); showToast('创建成功');
     } catch(e) { showToast('创建失败: '+e.message,'error'); }
 }
@@ -74,6 +85,18 @@ function editPlaylist(id) {
         <div class="field"><label>转场</label><select id="editPlaylistTransition">
             ${['FADE','SLIDE_LEFT','SLIDE_RIGHT','ZOOM_IN','ZOOM_OUT','DISSOLVE','RANDOM','NONE'].map(v => `<option value="${v}" ${p.transitionEffect===v?'selected':''}>${trLabel(v)}</option>`).join('')}</select></div>
         <div class="field"><label>间隔</label><input type="number" id="editPlaylistInterval" value="${p.defaultInterval}" min="1" max="60"><span class="unit">秒</span></div>
+        <div class="field"><label>播放模式</label><select id="editPlaylistPlayMode">
+            <option value="SEQUENTIAL" ${p.playMode==='SEQUENTIAL'?'selected':''}>顺序播放</option>
+            <option value="RANDOM" ${p.playMode==='RANDOM'?'selected':''}>随机播放</option>
+            <option value="SHUFFLE" ${p.playMode==='SHUFFLE'?'selected':''}>洗牌播放</option></select></div>
+        <div class="field"><label>循环次数</label><select id="editPlaylistLoopCount">
+            <option value="-1" ${p.loopCount===-1?'selected':''}>无限循环</option>
+            <option value="0" ${p.loopCount===0?'selected':''}>播放一次</option>
+            <option value="1" ${p.loopCount===1?'selected':''}>循环1次</option>
+            <option value="2" ${p.loopCount===2?'selected':''}>循环2次</option>
+            <option value="3" ${p.loopCount===3?'selected':''}>循环3次</option>
+            <option value="5" ${p.loopCount===5?'selected':''}>循环5次</option>
+            <option value="10" ${p.loopCount===10?'selected':''}>循环10次</option></select></div>
         <button class="btn btn-primary" onclick="updatePlaylist(${id})">保存</button>`);
 }
 
@@ -81,7 +104,12 @@ async function updatePlaylist(id) {
     const n = document.getElementById('editPlaylistName').value.trim();
     if (!n) { showToast('请输入名称','error'); return; }
     try {
-        await utils.request(`/playlists/${id}`, { method: 'PUT', body: JSON.stringify({ name: n, description: document.getElementById('editPlaylistDesc').value, transitionEffect: document.getElementById('editPlaylistTransition').value, defaultInterval: parseInt(document.getElementById('editPlaylistInterval').value) }) });
+        await utils.request(`/playlists/${id}`, { method: 'PUT', body: JSON.stringify({
+            name: n, description: document.getElementById('editPlaylistDesc').value,
+            transitionEffect: document.getElementById('editPlaylistTransition').value,
+            defaultInterval: parseInt(document.getElementById('editPlaylistInterval').value),
+            playMode: document.getElementById('editPlaylistPlayMode').value,
+            loopCount: parseInt(document.getElementById('editPlaylistLoopCount').value) }) });
         closeModal(); loadPlaylistList(); showToast('更新成功');
     } catch(e) { showToast('更新失败: '+e.message,'error'); }
 }
@@ -119,6 +147,15 @@ async function playPlaylist(id) {
         showToast('播放指令已发送');
     } catch(e) {
         showToast('播放失败: ' + e.message, 'error');
+    }
+}
+
+async function stopPlaylist() {
+    try {
+        await utils.request(`/playlists/0/stop`, { method: 'POST' });
+        showToast('已发送停止指令');
+    } catch(e) {
+        showToast('停止失败: ' + e.message, 'error');
     }
 }
 

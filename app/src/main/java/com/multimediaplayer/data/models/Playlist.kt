@@ -33,6 +33,12 @@ enum class TransitionType {
     RANDOM          // 随机选择
 }
 
+enum class PlayMode {
+    SEQUENTIAL,     // 顺序播放
+    RANDOM,         // 随机播放（每次随机选下一首）
+    SHUFFLE         // 洗牌播放（打乱顺序后顺序播放）
+}
+
 @Entity(tableName = "playlists")
 data class Playlist(
     @PrimaryKey(autoGenerate = true)
@@ -44,6 +50,8 @@ data class Playlist(
     val transitionEffect: TransitionType = TransitionType.FADE,
     val defaultInterval: Int = 10,  // 默认显示间隔（秒）
     val isDefault: Boolean = false,
+    val playMode: PlayMode = PlayMode.SEQUENTIAL,
+    val loopCount: Int = -1,  // -1=无限循环, 0=播放一次, N=循环N次
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

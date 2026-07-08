@@ -127,6 +127,9 @@ class ApiRouter(
                 val id = uri.split("/")[3].toLong()
                 playlistHandler.playPlaylist(id)
             }
+            uri.matches(Regex("^/api/playlists/\\d+/stop$")) && method == NanoHTTPD.Method.POST -> {
+                playlistHandler.stopPlaylist()
+            }
             
             // 定时任务API
             uri == "/api/tasks" && method == NanoHTTPD.Method.GET -> {

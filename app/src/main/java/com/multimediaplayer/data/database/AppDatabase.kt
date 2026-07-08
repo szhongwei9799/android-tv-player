@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
         DisplaySettings::class,
         MediaAudioOverlay::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -42,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "media_player_database"
                 )
+                .fallbackToDestructiveMigration()
                 .addCallback(DatabaseCallback())
                 .build()
                 INSTANCE = instance

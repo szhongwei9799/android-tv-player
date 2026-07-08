@@ -116,6 +116,10 @@ body{
   background:var(--red);color:#fff
 }
 .btn-danger:hover{filter:brightness(1.15)}
+.btn-warning{
+  background:var(--orange,#f59f00);color:#fff
+}
+.btn-warning:hover{filter:brightness(1.15)}
 .btn-sm{padding:6px 12px;font-size:12px}
 .btn-ghost{
   background:transparent;color:var(--text2);

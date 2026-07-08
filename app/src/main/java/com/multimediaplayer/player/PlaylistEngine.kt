@@ -27,6 +27,9 @@ class PlaylistEngine(private val context: Context) {
     private val _currentMedia = MutableStateFlow<Media?>(null)
     val currentMedia: StateFlow<Media?> = _currentMedia.asStateFlow()
     
+    private var shuffleOrder = mutableListOf<Int>()
+    private var loopCompleted = 0
+    
     suspend fun loadPlaylist(playlistId: Long) {
         val playlist = database.playlistDao().getPlaylistById(playlistId)
         _currentPlaylist.value = playlist
@@ -44,6 +47,14 @@ class PlaylistEngine(private val context: Context) {
         _mediaList.value = media
         _currentIndex.value = 0
         _currentMedia.value = media.firstOrNull()
+        loopCompleted = 0
+        buildShuffleOrder()
+    }
+    
+    private fun buildShuffleOrder() {
+        val size = _mediaList.value.size
+        shuffleOrder = (0 until size).toMutableList()
+        shuffleOrder.shuffle()
     }
     
     private suspend fun loadManualPlaylist(playlistId: Long): List<Media> {
@@ -68,36 +79,63 @@ class PlaylistEngine(private val context: Context) {
         }
     }
     
-    fun play() {
-        if (_mediaList.value.isNotEmpty()) {
-            _isPlaying.value = true
+    fun getPlaybackIndex(mediaIndex: Int): Int {
+        val playlist = _currentPlaylist.value ?: return mediaIndex
+        return when (playlist.playMode) {
+            PlayMode.SHUFFLE -> {
+                if (mediaIndex < shuffleOrder.size) shuffleOrder[mediaIndex]
+                else mediaIndex
+            }
+            else -> mediaIndex
         }
     }
     
-    fun pause() {
-        _isPlaying.value = false
+    fun getNextIndex(): Int {
+        val playlist = _currentPlaylist.value ?: return _currentIndex.value + 1
+        val size = _mediaList.value.size
+        if (size == 0) return 0
+        
+        return when (playlist.playMode) {
+            PlayMode.RANDOM -> {
+                var next = _currentIndex.value
+                while (next == _currentIndex.value && size > 1) {
+                    next = (0 until size).random()
+                }
+                next
+            }
+            PlayMode.SHUFFLE -> {
+                val currentShuffleIdx = shuffleOrder.indexOf(_currentIndex.value)
+                if (currentShuffleIdx < size - 1) shuffleOrder[currentShuffleIdx + 1]
+                else 0
+            }
+            else -> {
+                if (_currentIndex.value < size - 1) _currentIndex.value + 1
+                else 0
+            }
+        }
     }
     
-    fun togglePlayPause() {
-        if (_isPlaying.value) {
-            pause()
-        } else {
-            play()
+    fun shouldLoop(): Boolean {
+        val playlist = _currentPlaylist.value ?: return true
+        val size = _mediaList.value.size
+        if (size <= 1) return false
+        val isLastItem = (_currentIndex.value >= size - 1) ||
+            (playlist.playMode == PlayMode.SHUFFLE && shuffleOrder.indexOf(_currentIndex.value) >= size - 1)
+        if (!isLastItem) return true
+        
+        loopCompleted++
+        return when {
+            playlist.loopCount == -1 -> true
+            loopCompleted < playlist.loopCount -> true
+            else -> false
         }
     }
     
     fun next() {
-        val currentIdx = _currentIndex.value
-        val media = _mediaList.value
-        
-        if (currentIdx < media.size - 1) {
-            _currentIndex.value = currentIdx + 1
-            _currentMedia.value = media[currentIdx + 1]
-        } else if (_currentPlaylist.value?.isDefault == true) {
-            // 循环播放
-            _currentIndex.value = 0
-            _currentMedia.value = media.firstOrNull()
-        }
+        if (_mediaList.value.isEmpty()) return
+        val nextIdx = getNextIndex()
+        _currentIndex.value = nextIdx
+        _currentMedia.value = _mediaList.value.getOrNull(nextIdx)
     }
     
     fun previous() {
@@ -127,7 +165,6 @@ class PlaylistEngine(private val context: Context) {
         val playlist = _currentPlaylist.value ?: return TransitionType.FADE
         return when (playlist.transitionEffect) {
             TransitionType.RANDOM -> {
-                // 随机选择一个转场效果
                 val effects = TransitionType.values().filter { 
                     it != TransitionType.RANDOM && it != TransitionType.NONE 
                 }

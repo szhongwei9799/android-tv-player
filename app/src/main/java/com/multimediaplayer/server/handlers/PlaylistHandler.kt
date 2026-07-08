@@ -34,6 +34,8 @@ class PlaylistHandler(
                     playlist.description,
                     playlist.type,
                     playlist.transitionEffect,
+                    playlist.playMode,
+                    playlist.loopCount,
                     count
                 )
             }
@@ -78,7 +80,13 @@ class PlaylistHandler(
                 TransitionType.FADE
             },
             defaultInterval = data.get("defaultInterval")?.asInt ?: 10,
-            isDefault = data.get("isDefault")?.asBoolean ?: false
+            isDefault = data.get("isDefault")?.asBoolean ?: false,
+            playMode = try {
+                PlayMode.valueOf(data.get("playMode")?.asString ?: "SEQUENTIAL")
+            } catch (e: Exception) {
+                PlayMode.SEQUENTIAL
+            },
+            loopCount = data.get("loopCount")?.asInt ?: -1
         )
         
         val id = runBlocking { database.playlistDao().insertPlaylist(playlist) }
@@ -123,6 +131,12 @@ class PlaylistHandler(
             },
             defaultInterval = data.get("defaultInterval")?.asInt ?: existingPlaylist.defaultInterval,
             isDefault = data.get("isDefault")?.asBoolean ?: existingPlaylist.isDefault,
+            playMode = try {
+                PlayMode.valueOf(data.get("playMode")?.asString ?: existingPlaylist.playMode.name)
+            } catch (e: Exception) {
+                existingPlaylist.playMode
+            },
+            loopCount = data.get("loopCount")?.asInt ?: existingPlaylist.loopCount,
             updatedAt = System.currentTimeMillis()
         )
         
@@ -230,6 +244,16 @@ class PlaylistHandler(
         ))
     }
     
+    fun stopPlaylist(): NanoHTTPD.Response {
+        try {
+            val intent = Intent(com.multimediaplayer.ui.screens.ACTION_STOP_PLAYBACK)
+            context.sendBroadcast(intent)
+        } catch (e: Exception) {
+            return errorResponse("Failed to stop playback: ${e.message}")
+        }
+        return successResponse(mapOf("message" to "Playback stopped"))
+    }
+    
     private fun parseBody(session: NanoHTTPD.IHTTPSession): String {
         return try {
             val contentLength = session.headers["content-length"]?.toLongOrNull() ?: 0L
@@ -281,6 +305,8 @@ class PlaylistHandler(
         val description: String?,
         val type: PlaylistType,
         val transitionEffect: TransitionType,
+        val playMode: PlayMode,
+        val loopCount: Int,
         val mediaCount: Int
     )
 }
