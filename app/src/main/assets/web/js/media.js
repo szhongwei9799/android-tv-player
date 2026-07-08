@@ -177,19 +177,43 @@ async function applyBatchTags() {
     showToast(`分配完成: ${ok} 成功, ${fail} 失败`);
 }
 
+function detectMediaTypeFromUrl(url) {
+    const name = url.split('/').pop().split('?')[0];
+    const ext = name.includes('.') ? '.' + name.split('.').pop().toLowerCase() : '';
+    const video = ['.mp4','.avi','.mkv','.mov','.wmv','.flv','.webm','.m4v','.3gp','.ts','.m3u8'];
+    const audio = ['.mp3','.wav','.flac','.aac','.ogg','.wma','.m4a','.opus'];
+    const image = ['.jpg','.jpeg','.png','.gif','.bmp','.webp','.svg','.ico'];
+    if (video.includes(ext)) return 'VIDEO';
+    if (audio.includes(ext)) return 'AUDIO';
+    if (image.includes(ext)) return 'IMAGE';
+    if (['.ppt','.pptx'].includes(ext)) return 'PPT';
+    if (['.pdf'].includes(ext)) return 'PDF';
+    if (url.startsWith('rtsp://') || url.startsWith('rtmp://') || url.startsWith('mms://')) return 'STREAM';
+    return 'STREAM';
+}
+
 function showAddMediaModal() {
     showModal('添加网络媒体', `<div class="field"><label>名称</label><input type="text" id="networkMediaName" placeholder="例如: 远程视频"></div>
-        <div class="field"><label>URL</label><input type="url" id="networkMediaUrl" placeholder="https://example.com/video.mp4">
+        <div class="field"><label>URL</label><input type="url" id="networkMediaUrl" placeholder="https://example.com/video.mp4" oninput="autoDetectNetworkMediaType()">
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">支持协议: http:// https:// rtsp:// rtmp:// smb:// ftp:// ftps://</div></div>
+        <div class="field"><label>类型</label><input type="text" id="networkMediaType" readonly style="background:var(--bg2);color:var(--muted);font-size:12px;"></div>
         <button class="btn btn-primary" onclick="addNetworkMedia()">添加</button>`);
+}
+
+function autoDetectNetworkMediaType() {
+    const url = document.getElementById('networkMediaUrl').value.trim();
+    const typeEl = document.getElementById('networkMediaType');
+    if (url) { typeEl.value = detectMediaTypeFromUrl(url); }
+    else { typeEl.value = ''; }
 }
 
 async function addNetworkMedia() {
     const name = document.getElementById('networkMediaName').value.trim();
     const url = document.getElementById('networkMediaUrl').value.trim();
     if (!name || !url) { showToast('请填写完整信息', 'error'); return; }
+    const type = detectMediaTypeFromUrl(url);
     try {
-        await utils.request('/media', { method: 'POST', body: JSON.stringify({ name, path: url, type: 'STREAM', source: 'NETWORK' }) });
+        await utils.request('/media', { method: 'POST', body: JSON.stringify({ name, path: url, type, source: 'NETWORK' }) });
         closeModal(); loadMediaList(); showToast('添加成功');
     } catch (e) { showToast('添加失败: ' + e.message, 'error'); }
 }

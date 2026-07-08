@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.view.KeyEvent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +47,7 @@ fun PlayerScreen(
     val database = remember { AppDatabase.getDatabase(context) }
 
     var playlist by remember { mutableStateOf<Playlist?>(null) }
+    var displaySettings by remember { mutableStateOf<DisplaySettings?>(null) }
     var mediaList by remember { mutableStateOf<List<Media>>(emptyList()) }
     var currentIndex by remember { mutableIntStateOf(0) }
     var isPaused by remember { mutableStateOf(false) }
@@ -58,6 +61,7 @@ fun PlayerScreen(
 
     LaunchedEffect(playlistId) {
         playlist = database.playlistDao().getPlaylistById(playlistId)
+        displaySettings = database.taskDao().getDisplaySettings()
         if (playlist != null) {
             val items = database.playlistDao().getPlaylistItems(playlistId)
             val tagIds = mutableListOf<Long>()
@@ -130,12 +134,27 @@ fun PlayerScreen(
     fun getNextIndex(): Int {
         val size = mediaList.size
         if (size <= 1) return 0
+        val mode = playlist?.itemPlayMode ?: PlayMode.SEQUENTIAL
 
-        if (shuffleOrder.isNotEmpty() && shuffleOrder.size == size) {
-            val idx = shuffleOrder.indexOf(currentIndex)
-            if (idx < size - 1) return shuffleOrder[idx + 1]
+        return when (mode) {
+            PlayMode.RANDOM -> {
+                var next = currentIndex
+                while (next == currentIndex && size > 1) {
+                    next = (0 until size).random()
+                }
+                next
+            }
+            PlayMode.SHUFFLE -> {
+                if (shuffleOrder.size != size) {
+                    shuffleOrder = (mediaList.indices).toList().shuffled()
+                }
+                val idx = shuffleOrder.indexOf(currentIndex)
+                if (idx < size - 1) shuffleOrder[idx + 1] else shuffleOrder[0]
+            }
+            PlayMode.SEQUENTIAL -> {
+                if (currentIndex < size - 1) currentIndex + 1 else 0
+            }
         }
-        return if (currentIndex < size - 1) currentIndex + 1 else 0
     }
 
     fun shouldContinue(): Boolean {
@@ -145,7 +164,8 @@ fun PlayerScreen(
         val isLast = currentIndex >= size - 1
         if (!isLast) return true
         loopCompleted++
-        return loopCompleted < 1
+        val maxLoops = playlist?.itemLoopCount ?: 1
+        return maxLoops == -1 || loopCompleted < maxLoops
     }
 
     fun handleKeyEvent(event: KeyEvent): Boolean = if (event.action == KeyEvent.ACTION_DOWN) {
@@ -233,22 +253,35 @@ fun PlayerScreen(
                 CircularProgressIndicator()
             }
         } else {
-            val media = mediaList[currentIndex]
+            val transitionDuration = displaySettings?.transitionDuration ?: 500
 
-            MediaRenderer(
-                media = media,
-                isPlaying = !isPaused,
-                onVideoComplete = {
-                    if (shouldContinue()) {
-                        currentIndex = getNextIndex()
-                    } else {
-                        isPaused = true
-                    }
-                },
-                pageCommand = pageCommand,
-                onPageCommandConsumed = { pageCommand = 0 },
-                modifier = Modifier.fillMaxSize()
-            )
+            Crossfade(
+                targetState = currentIndex,
+                animationSpec = tween(durationMillis = transitionDuration),
+                label = "mediaTransition"
+            ) { index ->
+                val m = mediaList[index]
+
+                MediaRenderer(
+                    media = m,
+                    isPlaying = !isPaused && index == currentIndex,
+                    onVideoComplete = {
+                        if (index == currentIndex) {
+                            if (shouldContinue()) {
+                                currentIndex = getNextIndex()
+                            } else {
+                                isPaused = true
+                            }
+                        }
+                    },
+                    pageCommand = if (index == currentIndex) pageCommand else 0,
+                    onPageCommandConsumed = { if (index == currentIndex) pageCommand = 0 },
+                    imageInterval = displaySettings?.imageInterval ?: 5,
+                    pptInterval = displaySettings?.pptInterval ?: 10,
+                    pdfInterval = displaySettings?.pdfInterval ?: 10,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             if (showChannelList) {
                 ChannelListOverlay(

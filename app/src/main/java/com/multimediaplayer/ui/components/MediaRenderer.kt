@@ -33,6 +33,9 @@ fun MediaRenderer(
     onVideoComplete: () -> Unit,
     pageCommand: Int = 0,
     onPageCommandConsumed: () -> Unit = {},
+    imageInterval: Int = 5,
+    pptInterval: Int = 10,
+    pdfInterval: Int = 10,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -49,6 +52,9 @@ fun MediaRenderer(
         MediaType.IMAGE -> {
             ImagePlayer(
                 media = media,
+                onVideoComplete = onVideoComplete,
+                isPlaying = isPlaying,
+                imageInterval = imageInterval,
                 modifier = modifier
             )
         }
@@ -59,6 +65,7 @@ fun MediaRenderer(
                 onVideoComplete = onVideoComplete,
                 pageCommand = pageCommand,
                 onPageCommandConsumed = onPageCommandConsumed,
+                pdfInterval = pdfInterval,
                 modifier = modifier
             )
         }
@@ -69,6 +76,7 @@ fun MediaRenderer(
                 onVideoComplete = onVideoComplete,
                 pageCommand = pageCommand,
                 onPageCommandConsumed = onPageCommandConsumed,
+                pptInterval = pptInterval,
                 modifier = modifier
             )
         }
@@ -150,9 +158,19 @@ fun VideoPlayer(
 @Composable
 fun ImagePlayer(
     media: Media,
+    onVideoComplete: () -> Unit = {},
+    isPlaying: Boolean = true,
+    imageInterval: Int = 5,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    LaunchedEffect(isPlaying, media.id) {
+        if (isPlaying) {
+            kotlinx.coroutines.delay(imageInterval * 1000L)
+            onVideoComplete()
+        }
+    }
 
     if (media.source == com.multimediaplayer.data.models.MediaSource.LOCAL) {
         AsyncImage(
@@ -178,6 +196,7 @@ fun PdfPlayer(
     onVideoComplete: () -> Unit,
     pageCommand: Int = 0,
     onPageCommandConsumed: () -> Unit = {},
+    pdfInterval: Int = 10,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -206,7 +225,7 @@ fun PdfPlayer(
 
     LaunchedEffect(isPlaying, currentPage) {
         if (isPlaying && pageCount > 0) {
-            kotlinx.coroutines.delay(10000)
+            kotlinx.coroutines.delay(pdfInterval * 1000L)
             if (currentPage < pageCount - 1) {
                 currentPage++
                 bitmap = PdfRendererHelper.renderPdfPage(context, media.path, currentPage)
@@ -246,6 +265,7 @@ fun PptPlayer(
     onVideoComplete: () -> Unit,
     pageCommand: Int = 0,
     onPageCommandConsumed: () -> Unit = {},
+    pptInterval: Int = 10,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -274,7 +294,7 @@ fun PptPlayer(
 
     LaunchedEffect(isPlaying, currentSlide) {
         if (isPlaying && slideCount > 0) {
-            kotlinx.coroutines.delay(10000)
+            kotlinx.coroutines.delay(pptInterval * 1000L)
             if (currentSlide < slideCount - 1) {
                 currentSlide++
                 bitmap = PptRendererHelper.renderPptSlide(context, media.path, currentSlide)
