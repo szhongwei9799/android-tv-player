@@ -225,7 +225,6 @@ fun PlayerScreen(
                 else -> false
             }
         } else false
-    }
 
     val activity = LocalContext.current as? PlayerActivity
     DisposableEffect(Unit) {
