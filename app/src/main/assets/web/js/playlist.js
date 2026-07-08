@@ -17,7 +17,7 @@ function loopLabel(c) { return c===-1?'无限':c===0?'一次':`${c}次`; }
 function trLabel(t) { return {NONE:'无',FADE:'淡入淡出',SLIDE_LEFT:'左滑',SLIDE_RIGHT:'右滑',SLIDE_UP:'上滑',SLIDE_DOWN:'下滑',ZOOM_IN:'放大',ZOOM_OUT:'缩小',WIPE_LEFT:'左擦除',WIPE_RIGHT:'右擦除',DISSOLVE:'溶解',BLUR:'模糊',RANDOM:'随机'}[t]||t; }
 const transitions = ['FADE','SLIDE_LEFT','SLIDE_RIGHT','ZOOM_IN','ZOOM_OUT','DISSOLVE','RANDOM','NONE'];
 const playModes = ['SEQUENTIAL','RANDOM','SHUFFLE'];
-const loopOptions = [{-1:'无限'},{0:'一次'},{1:'1次'},{2:'2次'},{3:'3次'},{5:'5次'},{10:'10次'}].reduce((a,b)=>({...a,...b}),{});
+const loopOptions = {'-1':'无限','0':'一次','1':'1次','2':'2次','3':'3次','5':'5次','10':'10次'};
 
 function renderPlaylist() {
     const pl = playlistData.playlist;
@@ -71,7 +71,7 @@ async function updateSetting(field, value) {
     } catch(e) { showToast('保存失败: '+e.message,'error'); }
 }
 
-function showAddTagModal() {
+function showAddItemModal() {
     showModal('新建播放项目', `<div class="field"><label>项目名称</label><input type="text" id="newItemName" placeholder="例如: 上午时段"></div>
         <div class="field"><label>选择标签</label><div class="check-group" id="addTagSelect">加载中...</div></div>
         <button class="btn btn-primary" onclick="createItem()">创建</button>`);
