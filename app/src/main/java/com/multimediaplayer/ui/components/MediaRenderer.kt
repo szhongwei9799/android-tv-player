@@ -165,13 +165,6 @@ fun ImagePlayer(
 ) {
     val context = LocalContext.current
 
-    LaunchedEffect(isPlaying, media.id) {
-        if (isPlaying) {
-            kotlinx.coroutines.delay(imageInterval * 1000L)
-            onVideoComplete()
-        }
-    }
-
     if (media.source == com.multimediaplayer.data.models.MediaSource.LOCAL) {
         AsyncImage(
             model = File(media.path),

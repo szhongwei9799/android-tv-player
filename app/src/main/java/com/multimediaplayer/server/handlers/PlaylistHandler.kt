@@ -190,7 +190,7 @@ class PlaylistHandler(
                 } catch (e: Exception) {
                     PlayMode.SEQUENTIAL
                 },
-                loopCount = obj.get("loopCount")?.asInt ?: -1
+                loopCount = obj.get("loopCount")?.asInt ?: 1
             )
         }
 

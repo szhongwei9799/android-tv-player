@@ -6,8 +6,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.view.KeyEvent
-import androidx.compose.animation.*
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -165,7 +166,30 @@ fun PlayerScreen(
         if (!isLast) return true
         loopCompleted++
         val maxLoops = playlist?.itemLoopCount ?: 1
-        return maxLoops == -1 || loopCompleted < maxLoops
+        return maxLoops == 0 || loopCompleted < maxLoops
+    }
+
+    fun advanceToNext() {
+        if (shouldContinue()) {
+            currentIndex = getNextIndex()
+        } else {
+            isPaused = true
+        }
+    }
+
+    // Reset pageCommand on media change to prevent stale page commands
+    LaunchedEffect(currentIndex) { pageCommand = 0 }
+
+    // Image interval timer at PlayerScreen level
+    LaunchedEffect(isPaused, currentIndex) {
+        if (!isPaused && currentIndex in mediaList.indices) {
+            val media = mediaList[currentIndex]
+            if (media.type == MediaType.IMAGE) {
+                val interval = displaySettings?.imageInterval ?: 5
+                kotlinx.coroutines.delay(interval * 1000L)
+                advanceToNext()
+            }
+        }
     }
 
     fun handleKeyEvent(event: KeyEvent): Boolean = if (event.action == KeyEvent.ACTION_DOWN) {
@@ -253,73 +277,31 @@ fun PlayerScreen(
                 CircularProgressIndicator()
             }
         } else {
-            val fadeSpec = tween<Float>(durationMillis = displaySettings?.transitionDuration ?: 500)
-            val transitionType = playlist?.transitionEffect ?: TransitionType.FADE
+            // Fade transition using Animatable
+            val isNoneTransition = playlist?.transitionEffect == TransitionType.NONE
+            val fadeAnim = remember { Animatable(1f) }
+            LaunchedEffect(currentIndex) {
+                if (!isNoneTransition) {
+                    fadeAnim.snapTo(0f)
+                    fadeAnim.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(durationMillis = displaySettings?.transitionDuration ?: 500)
+                    )
+                }
+            }
 
-            AnimatedContent(
-                targetState = currentIndex,
-                transitionSpec = {
-                    when (transitionType) {
-                        TransitionType.SLIDE_LEFT ->
-                            (slideInHorizontally { -it } + fadeIn(fadeSpec)) togetherWith
-                            (slideOutHorizontally { it } + fadeOut(fadeSpec))
-                        TransitionType.SLIDE_RIGHT ->
-                            (slideInHorizontally { it } + fadeIn(fadeSpec)) togetherWith
-                            (slideOutHorizontally { -it } + fadeOut(fadeSpec))
-                        TransitionType.SLIDE_UP ->
-                            (slideInVertically { -it } + fadeIn(fadeSpec)) togetherWith
-                            (slideOutVertically { it } + fadeOut(fadeSpec))
-                        TransitionType.SLIDE_DOWN ->
-                            (slideInVertically { it } + fadeIn(fadeSpec)) togetherWith
-                            (slideOutVertically { -it } + fadeOut(fadeSpec))
-                        TransitionType.ZOOM_IN ->
-                            (scaleIn(initialScale = 0.5f) + fadeIn(fadeSpec)) togetherWith
-                            (scaleOut(targetScale = 2f) + fadeOut(fadeSpec))
-                        TransitionType.ZOOM_OUT ->
-                            (scaleIn(initialScale = 2f) + fadeIn(fadeSpec)) togetherWith
-                            (scaleOut(targetScale = 0.5f) + fadeOut(fadeSpec))
-                        TransitionType.WIPE_LEFT ->
-                            (slideInHorizontally { -it }) togetherWith
-                            (slideOutHorizontally { it })
-                        TransitionType.WIPE_RIGHT ->
-                            (slideInHorizontally { it }) togetherWith
-                            (slideOutHorizontally { -it })
-                        TransitionType.DISSOLVE ->
-                            (fadeIn(animationSpec = tween(1000))) togetherWith
-                            (fadeOut(animationSpec = tween(1000)))
-                        TransitionType.BLUR, TransitionType.FADE ->
-                            (fadeIn(fadeSpec)) togetherWith (fadeOut(fadeSpec))
-                        TransitionType.RANDOM -> {
-                            val effects = listOf(
-                                slideInHorizontally { -it } + fadeIn(fadeSpec),
-                                slideInVertically { -it } + fadeIn(fadeSpec),
-                                scaleIn(initialScale = 0.5f) + fadeIn(fadeSpec),
-                                fadeIn(fadeSpec)
-                            )
-                            effects.random() togetherWith fadeOut(fadeSpec)
-                        }
-                        TransitionType.NONE ->
-                            (fadeIn(animationSpec = tween(0))) togetherWith
-                            (fadeOut(animationSpec = tween(0)))
-                    }.using(SizeTransform(clip = false))
-                },
-                label = "mediaTransition"
-            ) { index ->
-                key(mediaList[index].id) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .run { if (isNoneTransition) this else alpha(fadeAnim.value) }
+            ) {
+                key(mediaList[currentIndex].id) {
                     MediaRenderer(
-                        media = mediaList[index],
-                        isPlaying = !isPaused && index == currentIndex,
-                        onVideoComplete = {
-                            if (index == currentIndex) {
-                                if (shouldContinue()) {
-                                    currentIndex = getNextIndex()
-                                } else {
-                                    isPaused = true
-                                }
-                            }
-                        },
-                        pageCommand = if (index == currentIndex) pageCommand else 0,
-                        onPageCommandConsumed = { if (index == currentIndex) pageCommand = 0 },
+                        media = mediaList[currentIndex],
+                        isPlaying = !isPaused,
+                        onVideoComplete = { advanceToNext() },
+                        pageCommand = pageCommand,
+                        onPageCommandConsumed = { pageCommand = 0 },
                         imageInterval = displaySettings?.imageInterval ?: 5,
                         pptInterval = displaySettings?.pptInterval ?: 10,
                         pdfInterval = displaySettings?.pdfInterval ?: 10,

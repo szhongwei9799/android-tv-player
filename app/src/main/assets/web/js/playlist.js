@@ -13,11 +13,10 @@ async function loadPlaylistList() {
 }
 
 function pmLabel(t) { return {SEQUENTIAL:'顺序',RANDOM:'随机',SHUFFLE:'洗牌'}[t]||t; }
-function loopLabel(c) { return c===-1?'无限':c===0?'一次':`${c}次`; }
+function loopLabel(c) { return c===0?'无限':`${c}次`; }
 function trLabel(t) { return {NONE:'无',FADE:'淡入淡出',SLIDE_LEFT:'左滑',SLIDE_RIGHT:'右滑',SLIDE_UP:'上滑',SLIDE_DOWN:'下滑',ZOOM_IN:'放大',ZOOM_OUT:'缩小',WIPE_LEFT:'左擦除',WIPE_RIGHT:'右擦除',DISSOLVE:'溶解',BLUR:'模糊',RANDOM:'随机'}[t]||t; }
 const transitions = ['FADE','SLIDE_LEFT','SLIDE_RIGHT','ZOOM_IN','ZOOM_OUT','DISSOLVE','RANDOM','NONE'];
 const playModes = ['SEQUENTIAL','RANDOM','SHUFFLE'];
-const loopOptions = {'-1':'无限','0':'一次','1':'1次','2':'2次','3':'3次','5':'5次','10':'10次'};
 
 function renderPlaylist() {
     const pl = playlistData.playlist;
@@ -34,8 +33,7 @@ function renderPlaylist() {
                 <span class="setting-item">间隔 <input type="number" class="setting-num" value="${pl.defaultInterval}" min="1" max="60" onchange="updateSetting('defaultInterval',parseInt(this.value)||10)"><span class="unit">s</span></span>
                 <span class="setting-item">项目 <select class="setting-select" onchange="updateSetting('itemPlayMode',this.value)">
                     ${playModes.map(v => `<option value="${v}" ${pl.itemPlayMode===v?'selected':''}>${pmLabel(v)}</option>`).join('')}</select></span>
-                <span class="setting-item">循环 <select class="setting-select" onchange="updateSetting('itemLoopCount',parseInt(this.value))">
-                    ${Object.entries(loopOptions).map(([k,v]) => `<option value="${k}" ${pl.itemLoopCount===parseInt(k)?'selected':''}>${v}</option>`).join('')}</select></span>
+                <span class="setting-item">循环 <input type="number" class="setting-num" value="${pl.itemLoopCount}" min="0" max="999" onchange="updateSetting('itemLoopCount',parseInt(this.value)||1)" title="0=无限循环"><span class="unit" style="font-size:10px;">0=无限</span></span>
             </div>
         </div>
         <div style="font-size:13px;font-weight:600;margin:8px 0;color:var(--text2);">播放项目</div>
@@ -110,8 +108,7 @@ function showEditItemModal(itemId) {
             <span style="flex:1;">${escHtml(t.name)}</span>
             <select onchange="updateItemTag(${itemId},${t.tagId},'playMode',this.value)" style="font-size:11px;padding:1px 3px;background:var(--elev);color:var(--text);border:none;border-radius:3px;">
                 ${playModes.map(v => `<option value="${v}" ${t.playMode===v?'selected':''}>${pmLabel(v)}</option>`).join('')}</select>
-            <select onchange="updateItemTag(${itemId},${t.tagId},'loopCount',parseInt(this.value))" style="font-size:11px;padding:1px 3px;background:var(--elev);color:var(--text);border:none;border-radius:3px;">
-                ${Object.entries(loopOptions).map(([k,v]) => `<option value="${k}" ${t.loopCount===parseInt(k)?'selected':''}>${v}</option>`).join('')}</select>
+            <input type="number" value="${t.loopCount}" min="0" max="999" onchange="updateItemTag(${itemId},${t.tagId},'loopCount',parseInt(this.value)||1)" title="0=无限循环" style="width:40px;font-size:11px;padding:1px 3px;background:var(--elev);color:var(--text);border:none;border-radius:3px;text-align:center;">
             <button class="btn btn-danger btn-sm" style="font-size:10px;padding:1px 6px;" onclick="removeItemTag(${itemId},${t.tagId})">移除</button>
         </div>`).join('')
         : '<span style="color:var(--muted);font-size:12px;">暂无标签</span>';

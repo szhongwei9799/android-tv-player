@@ -116,7 +116,7 @@ class PlaylistEngine(private val context: Context) {
 
         if (isLastTag) {
             tagLoopCompleted++
-            if (currentTag.loopCount != -1 && tagLoopCompleted >= currentTag.loopCount) {
+            if (currentTag.loopCount != 0 && tagLoopCompleted >= currentTag.loopCount) {
                 return advanceToNextItem()
             }
             currentTagIndex = 0
@@ -137,7 +137,7 @@ class PlaylistEngine(private val context: Context) {
 
         if (isLastItem) {
             itemLoopCompleted++
-            if (playlist.itemLoopCount != -1 && itemLoopCompleted >= playlist.itemLoopCount) {
+            if (playlist.itemLoopCount != 0 && itemLoopCompleted >= playlist.itemLoopCount) {
                 return false
             }
             currentItemIndex = 0
@@ -161,7 +161,7 @@ class PlaylistEngine(private val context: Context) {
 
         if (isLast) {
             loopCompleted++
-            if (tag.loopCount != -1 && loopCompleted >= tag.loopCount) {
+            if (tag.loopCount != 0 && loopCompleted >= tag.loopCount) {
                 return Int.MAX_VALUE
             }
         }

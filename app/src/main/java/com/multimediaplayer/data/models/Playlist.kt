@@ -32,7 +32,7 @@ data class Playlist(
     val transitionEffect: TransitionType = TransitionType.FADE,
     val defaultInterval: Int = 10,
     val itemPlayMode: PlayMode = PlayMode.SEQUENTIAL,
-    val itemLoopCount: Int = -1,
+    val itemLoopCount: Int = 1,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
@@ -55,5 +55,5 @@ data class PlaylistItemTag(
     val tagId: Long,
     val sortOrder: Int = 0,
     val playMode: PlayMode = PlayMode.SEQUENTIAL,
-    val loopCount: Int = -1
+    val loopCount: Int = 1
 )
