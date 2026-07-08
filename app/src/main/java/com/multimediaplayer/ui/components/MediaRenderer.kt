@@ -31,10 +31,12 @@ fun MediaRenderer(
     media: Media,
     isPlaying: Boolean,
     onVideoComplete: () -> Unit,
+    pageCommand: Int = 0,
+    onPageCommandConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
+
     when (media.type) {
         MediaType.VIDEO, MediaType.STREAM -> {
             VideoPlayer(
@@ -55,6 +57,8 @@ fun MediaRenderer(
                 media = media,
                 isPlaying = isPlaying,
                 onVideoComplete = onVideoComplete,
+                pageCommand = pageCommand,
+                onPageCommandConsumed = onPageCommandConsumed,
                 modifier = modifier
             )
         }
@@ -63,6 +67,8 @@ fun MediaRenderer(
                 media = media,
                 isPlaying = isPlaying,
                 onVideoComplete = onVideoComplete,
+                pageCommand = pageCommand,
+                onPageCommandConsumed = onPageCommandConsumed,
                 modifier = modifier
             )
         }
@@ -91,7 +97,7 @@ fun VideoPlayer(
             .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
             .build()
     }
-    
+
     LaunchedEffect(media.path) {
         val mediaSource = if (media.path.startsWith("rtsp://", ignoreCase = true) || media.path.startsWith("rtsps://", ignoreCase = true)) {
             rtspSourceFactory.createMediaSource(MediaItem.fromUri(Uri.parse(media.path)))
@@ -115,7 +121,7 @@ fun VideoPlayer(
             }
         })
     }
-    
+
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
             exoPlayer.play()
@@ -123,13 +129,13 @@ fun VideoPlayer(
             exoPlayer.pause()
         }
     }
-    
+
     DisposableEffect(Unit) {
         onDispose {
             exoPlayer.release()
         }
     }
-    
+
     AndroidView(
         factory = { ctx ->
             PlayerView(ctx).apply {
@@ -147,7 +153,7 @@ fun ImagePlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
+
     if (media.source == com.multimediaplayer.data.models.MediaSource.LOCAL) {
         AsyncImage(
             model = File(media.path),
@@ -170,41 +176,52 @@ fun PdfPlayer(
     media: Media,
     isPlaying: Boolean,
     onVideoComplete: () -> Unit,
+    pageCommand: Int = 0,
+    onPageCommandConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var currentPage by remember { mutableIntStateOf(0) }
     var pageCount by remember { mutableIntStateOf(0) }
     var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    
-    // 加载PDF页数
+
     LaunchedEffect(media.path) {
         pageCount = PdfRendererHelper.getPdfPageCount(context, media.path)
+        currentPage = 0
         if (pageCount > 0) {
-            bitmap = PdfRendererHelper.renderPdfPage(context, media.path, currentPage)
+            bitmap = PdfRendererHelper.renderPdfPage(context, media.path, 0)
         }
     }
-    
-    // 自动翻页
+
+    LaunchedEffect(pageCommand) {
+        if (pageCommand != 0 && pageCount > 0) {
+            val newPage = (currentPage + pageCommand).coerceIn(0, pageCount - 1)
+            if (newPage != currentPage) {
+                currentPage = newPage
+                bitmap = PdfRendererHelper.renderPdfPage(context, media.path, currentPage)
+            }
+            onPageCommandConsumed()
+        }
+    }
+
     LaunchedEffect(isPlaying, currentPage) {
         if (isPlaying && pageCount > 0) {
-            kotlinx.coroutines.delay(10000) // 10秒
+            kotlinx.coroutines.delay(10000)
             if (currentPage < pageCount - 1) {
                 currentPage++
                 bitmap = PdfRendererHelper.renderPdfPage(context, media.path, currentPage)
-            } else {
+            } else if (currentPage == pageCount - 1) {
                 onVideoComplete()
             }
         }
     }
-    
-    // 手动翻页
+
     LaunchedEffect(currentPage) {
         if (pageCount > 0 && currentPage in 0 until pageCount) {
             bitmap = PdfRendererHelper.renderPdfPage(context, media.path, currentPage)
         }
     }
-    
+
     Box(
         modifier = modifier.background(Color.Black),
         contentAlignment = Alignment.Center
@@ -227,41 +244,52 @@ fun PptPlayer(
     media: Media,
     isPlaying: Boolean,
     onVideoComplete: () -> Unit,
+    pageCommand: Int = 0,
+    onPageCommandConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var currentSlide by remember { mutableIntStateOf(0) }
     var slideCount by remember { mutableIntStateOf(0) }
     var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    
-    // 加载PPT幻灯片数
+
     LaunchedEffect(media.path) {
         slideCount = PptRendererHelper.getSlideCount(context, media.path)
+        currentSlide = 0
         if (slideCount > 0) {
-            bitmap = PptRendererHelper.renderPptSlide(context, media.path, currentSlide)
+            bitmap = PptRendererHelper.renderPptSlide(context, media.path, 0)
         }
     }
-    
-    // 自动翻页
+
+    LaunchedEffect(pageCommand) {
+        if (pageCommand != 0 && slideCount > 0) {
+            val newSlide = (currentSlide + pageCommand).coerceIn(0, slideCount - 1)
+            if (newSlide != currentSlide) {
+                currentSlide = newSlide
+                bitmap = PptRendererHelper.renderPptSlide(context, media.path, currentSlide)
+            }
+            onPageCommandConsumed()
+        }
+    }
+
     LaunchedEffect(isPlaying, currentSlide) {
         if (isPlaying && slideCount > 0) {
-            kotlinx.coroutines.delay(10000) // 10秒
+            kotlinx.coroutines.delay(10000)
             if (currentSlide < slideCount - 1) {
                 currentSlide++
                 bitmap = PptRendererHelper.renderPptSlide(context, media.path, currentSlide)
-            } else {
+            } else if (currentSlide == slideCount - 1) {
                 onVideoComplete()
             }
         }
     }
-    
-    // 手动翻页
+
     LaunchedEffect(currentSlide) {
         if (slideCount > 0 && currentSlide in 0 until slideCount) {
             bitmap = PptRendererHelper.renderPptSlide(context, media.path, currentSlide)
         }
     }
-    
+
     Box(
         modifier = modifier.background(Color.Black),
         contentAlignment = Alignment.Center
@@ -310,7 +338,7 @@ fun AudioPlayer(
         exoPlayer.setMediaSource(mediaSource)
         exoPlayer.prepare()
     }
-    
+
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
             exoPlayer.play()
@@ -318,18 +346,16 @@ fun AudioPlayer(
             exoPlayer.pause()
         }
     }
-    
+
     DisposableEffect(Unit) {
         onDispose {
             exoPlayer.release()
         }
     }
-    
-    // 音频播放时显示背景
+
     Box(
         modifier = modifier.background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        // 可以显示音频可视化或专辑封面
     }
 }
