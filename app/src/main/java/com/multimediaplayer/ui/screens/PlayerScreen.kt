@@ -82,17 +82,11 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(mediaList) {
-        if (mediaList.isNotEmpty() && channelItems.isEmpty()) {
-            buildChannelItems()
-        }
-    }
-
     fun buildChannelItems() {
         val items = mutableListOf<ChannelItem>()
         val pl = playlist
         if (pl != null && mediaList.isNotEmpty()) {
-            items.add(ChannelItem(pl.name, -1, Media("", type = MediaType.IMAGE, source = MediaSource.LOCAL, path = ""), isHeader = true))
+            items.add(ChannelItem(pl.name, -1, Media(name = "", type = MediaType.IMAGE, source = MediaSource.LOCAL, path = ""), isHeader = true))
             for (i in mediaList.indices) {
                 items.add(ChannelItem(pl.name, i, mediaList[i]))
             }
@@ -104,6 +98,12 @@ fun PlayerScreen(
         buildChannelItems()
         channelSelectedIndex = channelItems.indexOfFirst { it.mediaIndex == currentIndex && !it.isHeader }
             .coerceAtLeast(1)
+    }
+
+    LaunchedEffect(mediaList) {
+        if (mediaList.isNotEmpty() && channelItems.isEmpty()) {
+            buildChannelItems()
+        }
     }
 
     val stopReceiver = remember {
