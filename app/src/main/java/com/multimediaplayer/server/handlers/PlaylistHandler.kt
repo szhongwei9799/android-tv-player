@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.*
+import com.multimediaplayer.utils.AppLogger
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -97,6 +98,7 @@ class PlaylistHandler(
             runBlocking { database.playlistDao().setPlaylistTags(id, tagIds) }
         }
         
+        AppLogger.i("PlaylistHandler", "Created playlist #$id '${playlist.name}' type=${playlist.type}")
         return successResponse(mapOf("id" to id))
     }
     
@@ -148,6 +150,7 @@ class PlaylistHandler(
             runBlocking { database.playlistDao().setPlaylistTags(id, tagIds) }
         }
         
+        AppLogger.i("PlaylistHandler", "Updated playlist #$id '${updatedPlaylist.name}'")
         return successResponse(updatedPlaylist)
     }
     
@@ -157,11 +160,11 @@ class PlaylistHandler(
         
         runBlocking {
             database.playlistDao().deletePlaylist(playlist)
-            // 注意：只删除播放列表，不删除媒体
             database.playlistDao().deleteAllPlaylistItems(id)
             database.playlistDao().deleteAllPlaylistTags(id)
         }
         
+        AppLogger.i("PlaylistHandler", "Deleted playlist #$id '${playlist.name}'")
         return successResponse()
     }
     
@@ -212,7 +215,7 @@ class PlaylistHandler(
         )
         
         runBlocking { database.playlistDao().insertPlaylistItem(item) }
-        
+        AppLogger.i("PlaylistHandler", "Added media #$mediaId to playlist #$playlistId")
         return successResponse()
     }
     
@@ -220,6 +223,7 @@ class PlaylistHandler(
         runBlocking {
             database.playlistDao().deletePlaylistItemById(playlistId, mediaId)
         }
+        AppLogger.i("PlaylistHandler", "Removed media #$mediaId from playlist #$playlistId")
         return successResponse()
     }
     
@@ -237,6 +241,7 @@ class PlaylistHandler(
             return errorResponse("Failed to start playback: ${e.message}")
         }
         
+        AppLogger.i("PlaylistHandler", "Started playback of playlist #${playlist.id} '${playlist.name}'")
         return successResponse(mapOf(
             "playlistId" to playlist.id,
             "name" to playlist.name,
@@ -251,6 +256,7 @@ class PlaylistHandler(
         } catch (e: Exception) {
             return errorResponse("Failed to stop playback: ${e.message}")
         }
+        AppLogger.i("PlaylistHandler", "Stopped playback")
         return successResponse(mapOf("message" to "Playback stopped"))
     }
     

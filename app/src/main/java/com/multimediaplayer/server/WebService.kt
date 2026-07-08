@@ -9,12 +9,15 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.multimediaplayer.R
+import com.multimediaplayer.utils.AppLogger
 
 class WebService : Service() {
     private var webServer: WebServer? = null
     
     override fun onCreate() {
         super.onCreate()
+        AppLogger.init(this)
+        AppLogger.i("WebService", "Service created")
         createNotificationChannel()
     }
     

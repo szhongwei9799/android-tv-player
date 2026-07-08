@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.view.KeyEvent
-import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,12 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.multimediaplayer.PlayerActivity
 import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.*
 import com.multimediaplayer.ui.components.MediaRenderer
@@ -162,81 +160,78 @@ fun PlayerScreen(
         }
     }
 
-    val view = LocalView.current
-    DisposableEffect(Unit) {
-        val listener = View.OnKeyListener { _, keyCode, event ->
-            if (event.action == KeyEvent.ACTION_DOWN) {
-                when (keyCode) {
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-                        if (showChannelList) {
-                            val selected = channelItems.getOrNull(channelSelectedIndex)
-                            if (selected != null && !selected.isHeader) {
-                                currentIndex = selected.mediaIndex
-                                pageCommand = 0
-                                showChannelList = false
-                            }
-                        } else {
-                            showChannelList = true
-                            rebuildChannelItems()
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_UP -> {
-                        if (showChannelList) {
-                            var newIdx = channelSelectedIndex - 1
-                            while (newIdx >= 0 && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx--
-                            if (newIdx >= 0) channelSelectedIndex = newIdx
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_DOWN -> {
-                        if (showChannelList) {
-                            var newIdx = channelSelectedIndex + 1
-                            while (newIdx < channelItems.size && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx++
-                            if (newIdx < channelItems.size) channelSelectedIndex = newIdx
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        if (!showChannelList && mediaList.isNotEmpty()) {
-                            val media = mediaList[currentIndex]
-                            if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
-                                pageCommand = -1
-                            } else if (currentIndex > 0) {
-                                currentIndex--
-                            }
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        if (!showChannelList && mediaList.isNotEmpty()) {
-                            val media = mediaList[currentIndex]
-                            if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
-                                pageCommand = 1
-                            } else if (currentIndex < mediaList.size - 1) {
-                                currentIndex++
-                            }
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_BACK -> {
-                        if (showChannelList) {
+    fun handleKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    if (showChannelList) {
+                        val selected = channelItems.getOrNull(channelSelectedIndex)
+                        if (selected != null && !selected.isHeader) {
+                            currentIndex = selected.mediaIndex
+                            pageCommand = 0
                             showChannelList = false
-                        } else {
-                            onBack()
                         }
-                        true
+                    } else {
+                        showChannelList = true
+                        rebuildChannelItems()
                     }
-                    else -> false
+                    true
                 }
-            } else false
-        }
-        view.setOnKeyListener(listener)
-        view.isFocusableInTouchMode = true
-        view.requestFocus()
-        onDispose {
-            view.setOnKeyListener(null)
-        }
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (showChannelList) {
+                        var newIdx = channelSelectedIndex - 1
+                        while (newIdx >= 0 && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx--
+                        if (newIdx >= 0) channelSelectedIndex = newIdx
+                    }
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    if (showChannelList) {
+                        var newIdx = channelSelectedIndex + 1
+                        while (newIdx < channelItems.size && channelItems.getOrNull(newIdx)?.isHeader == true) newIdx++
+                        if (newIdx < channelItems.size) channelSelectedIndex = newIdx
+                    }
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    if (!showChannelList && mediaList.isNotEmpty()) {
+                        val media = mediaList[currentIndex]
+                        if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
+                            pageCommand = -1
+                        } else if (currentIndex > 0) {
+                            currentIndex--
+                        }
+                    }
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (!showChannelList && mediaList.isNotEmpty()) {
+                        val media = mediaList[currentIndex]
+                        if (media.type == MediaType.PDF || media.type == MediaType.PPT) {
+                            pageCommand = 1
+                        } else if (currentIndex < mediaList.size - 1) {
+                            currentIndex++
+                        }
+                    }
+                    true
+                }
+                KeyEvent.KEYCODE_BACK -> {
+                    if (showChannelList) {
+                        showChannelList = false
+                    } else {
+                        onBack()
+                    }
+                    true
+                }
+                else -> false
+            }
+        } else false
+    }
+
+    val activity = LocalContext.current as? PlayerActivity
+    DisposableEffect(Unit) {
+        activity?.keyEventHandler = { event -> handleKeyEvent(event) }
+        onDispose { activity?.keyEventHandler = null }
     }
 
     Box(

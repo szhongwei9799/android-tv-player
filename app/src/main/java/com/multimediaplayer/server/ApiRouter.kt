@@ -5,7 +5,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.*
+import com.multimediaplayer.scheduler.TaskScheduler
 import com.multimediaplayer.server.handlers.*
+import com.multimediaplayer.utils.AppLogger
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.runBlocking
 
@@ -17,7 +19,8 @@ class ApiRouter(
     private val mediaHandler = MediaHandler(database, context)
     private val tagHandler = TagHandler(database)
     private val playlistHandler = PlaylistHandler(database, context)
-    private val taskHandler = TaskHandler(database)
+    private val taskScheduler = TaskScheduler(context)
+    private val taskHandler = TaskHandler(database, taskScheduler)
     private val streamHandler = StreamHandler(database, context)
     private val systemHandler = SystemHandler(database, context)
     private val networkHandler = NetworkHandler(database, context)
@@ -184,6 +187,22 @@ class ApiRouter(
             }
             uri == "/api/network/import" && method == NanoHTTPD.Method.POST -> {
                 networkHandler.importNetworkFile(session)
+            }
+
+            // 日志API
+            uri == "/api/logs" && method == NanoHTTPD.Method.GET -> {
+                val logFiles = AppLogger.getLogFiles()
+                successResponse(logFiles.map { mapOf("name" to it.name, "size" to it.length(), "lastModified" to it.lastModified()) })
+            }
+            uri.matches(Regex("^/api/logs/.+$")) && method == NanoHTTPD.Method.GET -> {
+                val fileName = uri.removePrefix("/api/logs/")
+                val logFile = AppLogger.getLogFiles().find { it.name == fileName }
+                if (logFile != null) {
+                    val content = logFile.readText()
+                    NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "text/plain; charset=utf-8", content)
+                } else {
+                    errorResponse("Log file not found", NanoHTTPD.Response.Status.NOT_FOUND)
+                }
             }
 
             else -> errorResponse("Not Found", NanoHTTPD.Response.Status.NOT_FOUND)

@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.ScheduledTask
+import com.multimediaplayer.utils.AppLogger
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.util.*
 
@@ -15,14 +17,11 @@ class TaskScheduler(private val context: Context) {
     private val database = AppDatabase.getDatabase(context)
     
     fun scheduleAllTasks() {
-        runBlocking {
-            val tasks = database.taskDao().getAllTasks()
-            tasks.collect { taskList ->
-                taskList.filter { it.isEnabled }.forEach { task ->
-                    scheduleTask(task)
-                }
-            }
+        val enabledTasks = runBlocking {
+            database.taskDao().getAllTasks().first().filter { it.isEnabled }
         }
+        enabledTasks.forEach { scheduleTask(it) }
+        AppLogger.i("TaskScheduler", "Scheduled ${enabledTasks.size} enabled tasks")
     }
     
     fun scheduleTask(task: ScheduledTask) {
@@ -42,9 +41,13 @@ class TaskScheduler(private val context: Context) {
         
         val calendar = Calendar.getInstance()
         
-        // 解析时间
-        val timeParts = task.timeOfDay?.split(":")
-        if (timeParts != null && timeParts.size == 2) {
+        if (task.timeOfDay == null) {
+            AppLogger.w("TaskScheduler", "Task #${task.id} has no timeOfDay, skipping")
+            return
+        }
+
+        val timeParts = task.timeOfDay.split(":")
+        if (timeParts.size == 2) {
             calendar.set(Calendar.HOUR_OF_DAY, timeParts[0].toIntOrNull() ?: 0)
             calendar.set(Calendar.MINUTE, timeParts[1].toIntOrNull() ?: 0)
             calendar.set(Calendar.SECOND, 0)
@@ -98,13 +101,13 @@ class TaskScheduler(private val context: Context) {
                 pendingIntent
             )
         } catch (e: SecurityException) {
-            // 没有精确闹钟权限，使用非精确闹钟
             alarmManager.set(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
                 pendingIntent
             )
         }
+        AppLogger.i("TaskScheduler", "Scheduled task #${task.id} '${task.name}' at ${task.timeOfDay}")
     }
     
     fun cancelTask(taskId: Long) {
@@ -120,16 +123,22 @@ class TaskScheduler(private val context: Context) {
         )
         
         alarmManager.cancel(pendingIntent)
+        AppLogger.i("TaskScheduler", "Cancelled task #$taskId")
+    }
+
+    fun rescheduleTask(task: ScheduledTask) {
+        cancelTask(task.id)
+        if (task.isEnabled) {
+            scheduleTask(task)
+        }
+        AppLogger.i("TaskScheduler", "Rescheduled task #${task.id} '${task.name}' (enabled=${task.isEnabled})")
     }
     
     fun cancelAllTasks() {
-        runBlocking {
-            val tasks = database.taskDao().getAllTasks()
-            tasks.collect { taskList ->
-                taskList.forEach { task ->
-                    cancelTask(task.id)
-                }
-            }
+        val allTaskIds = runBlocking {
+            database.taskDao().getAllTasks().first().map { it.id }
         }
+        allTaskIds.forEach { cancelTask(it) }
+        AppLogger.i("TaskScheduler", "Cancelled ${allTaskIds.size} tasks")
     }
 }

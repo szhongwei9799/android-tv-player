@@ -1,21 +1,21 @@
 package com.multimediaplayer
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.ui.screens.PlayerScreen
 import com.multimediaplayer.ui.theme.MediaPlayerTheme
 
 class PlayerActivity : ComponentActivity() {
+    var keyEventHandler: ((KeyEvent) -> Boolean)? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         val playlistId = intent.getLongExtra("playlist_id", -1)
-        
+
         setContent {
             MediaPlayerTheme {
                 PlayerScreen(
@@ -26,8 +26,12 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (keyEventHandler?.invoke(event) == true) return true
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onBackPressed() {
-        super.onBackPressed()
         finish()
     }
 }

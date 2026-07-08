@@ -3,6 +3,7 @@ package com.multimediaplayer.server
 import android.content.Context
 import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.*
+import com.multimediaplayer.utils.AppLogger
 import com.multimediaplayer.utils.FileUtils
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.CoroutineScope
@@ -24,9 +25,10 @@ class WebServer(
     override fun serve(session: IHTTPSession): Response {
         val uri = session.uri
         val method = session.method
+
+        AppLogger.i("HTTP", "$method $uri")
         
         // CORS头
-        val corsHeaders = mapOf(
             "Access-Control-Allow-Origin" to "*",
             "Access-Control-Allow-Methods" to "GET, POST, PUT, DELETE, OPTIONS",
             "Access-Control-Allow-Headers" to "Content-Type, Authorization"

@@ -8,6 +8,7 @@ import com.multimediaplayer.data.models.Media
 import com.multimediaplayer.data.models.MediaSource
 import com.multimediaplayer.data.models.MediaTagCrossRef
 import com.multimediaplayer.data.models.MediaType
+import com.multimediaplayer.utils.AppLogger
 import com.multimediaplayer.utils.FileUtils
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.runBlocking
@@ -263,6 +264,7 @@ class NetworkHandler(
             }
         }
 
+        AppLogger.i("NetworkHandler", "Imported network file #$id '${media.name}' url=$url")
         return successResponse(mapOf("id" to id))
     }
 

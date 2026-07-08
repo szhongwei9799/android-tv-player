@@ -9,6 +9,7 @@ import com.multimediaplayer.data.models.MediaSource
 import com.multimediaplayer.data.models.MediaTagCrossRef
 import com.multimediaplayer.data.models.MediaType
 import com.multimediaplayer.data.models.Tag
+import com.multimediaplayer.utils.AppLogger
 import com.multimediaplayer.utils.FileUtils
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.flow.first
@@ -71,6 +72,7 @@ class MediaHandler(
         val media = try {
             gson.fromJson(body, Media::class.java)
         } catch (e: Exception) {
+            AppLogger.e("MediaHandler", "addMedia: invalid JSON", e)
             return errorResponse("Invalid media data")
         }
         
@@ -79,7 +81,7 @@ class MediaHandler(
         }
         
         assignUnclassifiedTag(id)
-        
+        AppLogger.i("MediaHandler", "Added media #$id '${media.name}' type=${media.type}")
         return successResponse(mapOf("id" to id))
     }
     
@@ -88,6 +90,7 @@ class MediaHandler(
         val mediaUpdate = try {
             gson.fromJson(body, Media::class.java)
         } catch (e: Exception) {
+            AppLogger.e("MediaHandler", "updateMedia #$id: invalid JSON", e)
             return errorResponse("Invalid media data")
         }
         
@@ -100,6 +103,7 @@ class MediaHandler(
         )
         
         runBlocking { database.mediaDao().updateMedia(updatedMedia) }
+        AppLogger.i("MediaHandler", "Updated media #$id '${updatedMedia.name}'")
         return successResponse(updatedMedia)
     }
     
@@ -121,6 +125,7 @@ class MediaHandler(
             }
         }
         
+        AppLogger.i("MediaHandler", "Deleted media #$id '${media.name}' source=${media.source}")
         return successResponse()
     }
     
@@ -185,9 +190,11 @@ class MediaHandler(
             }
             
             assignUnclassifiedTag(id)
-            
+
+            AppLogger.i("MediaHandler", "Uploaded media #$id '$fileName' type=$mediaType size=$contentLength")
             successResponse(mapOf("id" to id, "name" to fileName))
         } catch (e: Exception) {
+            AppLogger.e("MediaHandler", "Upload failed", e)
             errorResponse("Upload failed: ${e.message}")
         }
     }
