@@ -6,6 +6,7 @@ import com.multimediaplayer.data.database.AppDatabase
 import com.multimediaplayer.data.models.ScheduledTask
 import com.multimediaplayer.data.models.TaskType
 import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class TaskHandler(
@@ -14,7 +15,7 @@ class TaskHandler(
     private val gson = Gson()
     
     fun getTaskList(): NanoHTTPD.Response {
-        val tasks = runBlocking { database.taskDao().getAllTasks() }
+        val tasks = runBlocking { database.taskDao().getAllTasks().first() }
         return successResponse(tasks)
     }
     
