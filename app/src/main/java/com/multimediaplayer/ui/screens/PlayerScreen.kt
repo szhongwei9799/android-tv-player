@@ -60,9 +60,10 @@ fun PlayerScreen(
         playlist = database.playlistDao().getPlaylistById(playlistId)
         if (playlist != null) {
             val items = database.playlistDao().getPlaylistItems(playlistId)
-            val tagIds = items.flatMap { item ->
-                runBlocking { database.playlistDao().getPlaylistItemTags(item.id) }
-            }.map { it.tagId }
+            val tagIds = mutableListOf<Long>()
+            for (item in items) {
+                tagIds.addAll(database.playlistDao().getPlaylistItemTags(item.id).map { it.tagId })
+            }
             if (tagIds.isNotEmpty()) {
                 database.tagDao().getMediaByTagIds(tagIds).collect { media ->
                     mediaList = media
@@ -86,9 +87,9 @@ fun PlayerScreen(
         val items = mutableListOf<ChannelItem>()
         val pl = playlist
         if (pl != null && mediaList.isNotEmpty()) {
-            items.add(ChannelItem(pl.name, -1, Media(name = "", type = MediaType.IMAGE, source = MediaSource.LOCAL, path = ""), isHeader = true))
+            items.add(ChannelItem("播放列表", -1, Media(name = "", type = MediaType.IMAGE, source = MediaSource.LOCAL, path = ""), isHeader = true))
             for (i in mediaList.indices) {
-                items.add(ChannelItem(pl.name, i, mediaList[i]))
+                items.add(ChannelItem("播放列表", i, mediaList[i]))
             }
         }
         channelItems = items
