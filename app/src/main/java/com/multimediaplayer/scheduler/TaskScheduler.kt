@@ -30,7 +30,7 @@ class TaskScheduler(private val context: Context) {
             putExtra("task_id", task.id)
             putExtra("task_type", task.type.name)
             putExtra("playlist_id", task.playlistId)
-            putExtra("duration_minutes", task.durationMinutes)
+            putExtra("end_time", task.endTime)
         }
         
         val pendingIntent = PendingIntent.getBroadcast(

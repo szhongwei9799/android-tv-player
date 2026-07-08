@@ -19,7 +19,7 @@ class TaskReceiver : BroadcastReceiver() {
         val taskId = intent.getLongExtra("task_id", -1)
         val taskType = intent.getStringExtra("task_type")
         val playlistId = intent.getLongExtra("playlist_id", -1)
-        val durationMinutes = if (intent.hasExtra("duration_minutes")) intent.getIntExtra("duration_minutes", -1) else -1
+        val endTime = intent.getStringExtra("end_time")
         
         if (taskId == -1L || taskType == null) {
             return
@@ -37,7 +37,7 @@ class TaskReceiver : BroadcastReceiver() {
 
                     val playIntent = Intent("com.multimediaplayer.PLAY").apply {
                         putExtra("playlist_id", playlistId)
-                        putExtra("duration_minutes", durationMinutes)
+                        putExtra("end_time", endTime)
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(playIntent)

@@ -383,6 +383,27 @@ body{
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 @keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
 
+/* ===== Playlist Settings ===== */
+.setting-item{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:3px 8px;background:var(--surf);border-radius:5px;
+  font-size:11px;color:var(--text2);
+  white-space:nowrap
+}
+.setting-select{
+  font-size:11px;padding:1px 4px;border:none;border-radius:3px;
+  background:var(--elev);color:var(--text);cursor:pointer;
+  outline:1px solid var(--line);appearance:none
+}
+.setting-select:focus{outline-color:var(--blue)}
+.setting-num{
+  width:36px;font-size:11px;padding:1px 4px;border:none;border-radius:3px;
+  background:var(--elev);color:var(--text);text-align:center;
+  outline:1px solid var(--line)
+}
+.setting-num:focus{outline-color:var(--blue)}
+.setting-item .unit{font-size:10px;color:var(--muted)}
+
 /* ===== Network Browser ===== */
 .net-toolbar{
   padding:10px 14px;background:var(--surf);border-radius:6px;margin-bottom:10px;

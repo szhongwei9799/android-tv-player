@@ -39,7 +39,13 @@ class PlaylistHandler(
         }
         
         return successResponse(mapOf(
-            "playlist" to playlist,
+            "playlist" to mapOf(
+                "id" to playlist.id,
+                "transitionEffect" to playlist.transitionEffect,
+                "defaultInterval" to playlist.defaultInterval,
+                "tagPlayMode" to playlist.tagPlayMode,
+                "tagLoopCount" to playlist.tagLoopCount
+            ),
             "tags" to tagDetails
         ))
     }
@@ -55,8 +61,6 @@ class PlaylistHandler(
         val playlist = runBlocking { database.playlistDao().ensureDefaultPlaylist() }
         
         val updated = playlist.copy(
-            name = data.get("name")?.asString ?: playlist.name,
-            description = data.get("description")?.asString ?: playlist.description,
             transitionEffect = try {
                 TransitionType.valueOf(data.get("transitionEffect")?.asString ?: playlist.transitionEffect.name)
             } catch (e: Exception) {

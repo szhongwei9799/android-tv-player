@@ -38,7 +38,7 @@ private data class ChannelItem(
 @Composable
 fun PlayerScreen(
     playlistId: Long,
-    durationMinutes: Int? = null,
+    endTimeMillis: Long? = null,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -70,10 +70,12 @@ fun PlayerScreen(
         }
     }
 
-    // 定时任务播放时长：到时自动返回
-    LaunchedEffect(playlistId, durationMinutes) {
-        if (durationMinutes != null && durationMinutes > 0) {
-            kotlinx.coroutines.delay(durationMinutes * 60_000L)
+    // 定时任务结束时间：每5秒检查一次，到点自动返回
+    LaunchedEffect(playlistId, endTimeMillis) {
+        if (endTimeMillis != null) {
+            while (System.currentTimeMillis() < endTimeMillis) {
+                kotlinx.coroutines.delay(5_000L)
+            }
             onBack()
         }
     }
@@ -134,15 +136,13 @@ fun PlayerScreen(
     }
 
     fun shouldContinue(): Boolean {
+        if (endTimeMillis != null) return true
         val size = mediaList.size
         if (size <= 1) return false
         val isLast = currentIndex >= size - 1
         if (!isLast) return true
         loopCompleted++
-        return when {
-            loopCompleted < 1 -> true
-            else -> false
-        }
+        return loopCompleted < 1
     }
 
     fun handleKeyEvent(event: KeyEvent): Boolean = if (event.action == KeyEvent.ACTION_DOWN) {

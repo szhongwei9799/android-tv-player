@@ -44,7 +44,7 @@ class TaskHandler(
             name = name,
             type = type,
             playlistId = data.get("playlistId")?.takeIf { !it.isJsonNull }?.asLong,
-            durationMinutes = data.get("durationMinutes")?.takeIf { !it.isJsonNull }?.asInt,
+            endTime = data.get("endTime")?.takeIf { !it.isJsonNull }?.asString,
             cronExpression = data.get("cronExpression")?.takeIf { !it.isJsonNull }?.asString,
             timeOfDay = data.get("timeOfDay")?.takeIf { !it.isJsonNull }?.asString,
             daysOfWeek = data.get("daysOfWeek")?.takeIf { !it.isJsonNull }?.asString,
@@ -80,7 +80,7 @@ class TaskHandler(
                 existingTask.type
             },
             playlistId = data.get("playlistId")?.takeIf { !it.isJsonNull }?.asLong ?: existingTask.playlistId,
-            durationMinutes = data.get("durationMinutes")?.takeIf { !it.isJsonNull }?.asInt ?: existingTask.durationMinutes,
+            endTime = data.get("endTime")?.takeIf { !it.isJsonNull }?.asString ?: existingTask.endTime,
             cronExpression = data.get("cronExpression")?.takeIf { !it.isJsonNull }?.asString ?: existingTask.cronExpression,
             timeOfDay = data.get("timeOfDay")?.takeIf { !it.isJsonNull }?.asString ?: existingTask.timeOfDay,
             daysOfWeek = data.get("daysOfWeek")?.takeIf { !it.isJsonNull }?.asString ?: existingTask.daysOfWeek,

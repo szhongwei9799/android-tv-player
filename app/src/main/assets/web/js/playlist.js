@@ -13,31 +13,40 @@ async function loadPlaylistList() {
 }
 
 function pmLabel(t) { return {SEQUENTIAL:'顺序',RANDOM:'随机',SHUFFLE:'洗牌'}[t]||t; }
-function loopLabel(c) { return c===-1?'无限循环':c===0?'播放一次':`循环${c}次`; }
+function loopLabel(c) { return c===-1?'无限':c===0?'一次':`${c}次`; }
 function trLabel(t) { return {NONE:'无',FADE:'淡入淡出',SLIDE_LEFT:'左滑',SLIDE_RIGHT:'右滑',SLIDE_UP:'上滑',SLIDE_DOWN:'下滑',ZOOM_IN:'放大',ZOOM_OUT:'缩小',WIPE_LEFT:'左擦除',WIPE_RIGHT:'右擦除',DISSOLVE:'溶解',BLUR:'模糊',RANDOM:'随机'}[t]||t; }
+const transitions = ['FADE','SLIDE_LEFT','SLIDE_RIGHT','ZOOM_IN','ZOOM_OUT','DISSOLVE','RANDOM','NONE'];
+const playModes = ['SEQUENTIAL','RANDOM','SHUFFLE'];
+const loopOptions = [{-1:'无限'},{0:'一次'},{1:'1次'},{2:'2次'},{3:'3次'},{5:'5次'},{10:'10次'}].reduce((a,b)=>({...a,...b}),{});
 
 function renderPlaylist() {
     const pl = playlistData.playlist;
     document.getElementById('playlistList').innerHTML = `
         <div style="margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:10px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                <strong style="font-size:16px;">${escHtml(pl.name)}</strong>
-                <button class="btn btn-ghost btn-sm" onclick="showPlaylistSettings()">设置</button>
-            </div>
-            <div style="font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;">
-                <span>转场: ${trLabel(pl.transitionEffect)}</span>
-                <span>间隔: ${pl.defaultInterval}s</span>
-                <span>标签模式: ${pmLabel(pl.tagPlayMode)}</span>
-                <span>标签循环: ${loopLabel(pl.tagLoopCount)}</span>
-            </div>
-            <div style="margin-top:10px;display:flex;gap:6px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
                 <button class="btn btn-primary btn-sm" onclick="playPlaylist()">播放</button>
                 <button class="btn btn-warning btn-sm" onclick="stopPlaylist()">停止</button>
+            </div>
+            <div style="font-size:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <span class="setting-item">转场 <select class="setting-select" onchange="updateSetting('transitionEffect',this.value)">
+                    ${transitions.map(v => `<option value="${v}" ${pl.transitionEffect===v?'selected':''}>${trLabel(v)}</option>`).join('')}</select></span>
+                <span class="setting-item">间隔 <input type="number" class="setting-num" value="${pl.defaultInterval}" min="1" max="60" onchange="updateSetting('defaultInterval',parseInt(this.value)||10)"><span class="unit">s</span></span>
+                <span class="setting-item">标签 <select class="setting-select" onchange="updateSetting('tagPlayMode',this.value)">
+                    ${playModes.map(v => `<option value="${v}" ${pl.tagPlayMode===v?'selected':''}>${pmLabel(v)}</option>`).join('')}</select></span>
+                <span class="setting-item">循环 <select class="setting-select" onchange="updateSetting('tagLoopCount',parseInt(this.value))">
+                    ${Object.entries(loopOptions).map(([k,v]) => `<option value="${k}" ${pl.tagLoopCount===parseInt(k)?'selected':''}>${v}</option>`).join('')}</select></span>
             </div>
         </div>
         <div style="font-size:13px;font-weight:600;margin:8px 0;color:var(--text2);">播放项目（标签列表）</div>
         ${playlistData.tags.map((t,i) => renderTagItem(t,i)).join('')}
     `;
+}
+
+async function updateSetting(field, value) {
+    try {
+        await utils.request('/playlist', { method: 'PUT', body: JSON.stringify({ [field]: value }) });
+        showToast('已更新');
+    } catch(e) { showToast('保存失败: '+e.message,'error'); }
 }
 
 function renderTagItem(t, i) {
@@ -52,40 +61,7 @@ function renderTagItem(t, i) {
     </div>`;
 }
 
-function showPlaylistSettings() {
-    const pl = playlistData.playlist;
-    showModal('播放列表设置', `<div class="field"><label>名称</label><input type="text" id="plName" value="${escHtml(pl.name)}"></div>
-        <div class="field"><label>描述</label><input type="text" id="plDesc" value="${escHtml(pl.description||'')}"></div>
-        <div class="field"><label>转场</label><select id="plTransition">
-            ${['FADE','SLIDE_LEFT','SLIDE_RIGHT','ZOOM_IN','ZOOM_OUT','DISSOLVE','RANDOM','NONE'].map(v => `<option value="${v}" ${pl.transitionEffect===v?'selected':''}>${trLabel(v)}</option>`).join('')}</select></div>
-        <div class="field"><label>间隔</label><input type="number" id="plInterval" value="${pl.defaultInterval}" min="1" max="60"><span class="unit">秒</span></div>
-        <div class="field"><label>标签播放模式</label><select id="plTagPlayMode">
-            <option value="SEQUENTIAL" ${pl.tagPlayMode==='SEQUENTIAL'?'selected':''}>顺序播放</option>
-            <option value="RANDOM" ${pl.tagPlayMode==='RANDOM'?'selected':''}>随机播放</option>
-            <option value="SHUFFLE" ${pl.tagPlayMode==='SHUFFLE'?'selected':''}>洗牌播放</option></select></div>
-        <div class="field"><label>标签循环次数</label><select id="plTagLoopCount">
-            <option value="-1" ${pl.tagLoopCount===-1?'selected':''}>无限循环</option>
-            <option value="0" ${pl.tagLoopCount===0?'selected':''}>播放一次</option>
-            <option value="1" ${pl.tagLoopCount===1?'selected':''}>循环1次</option>
-            <option value="2" ${pl.tagLoopCount===2?'selected':''}>循环2次</option>
-            <option value="3" ${pl.tagLoopCount===3?'selected':''}>循环3次</option>
-            <option value="5" ${pl.tagLoopCount===5?'selected':''}>循环5次</option>
-            <option value="10" ${pl.tagLoopCount===10?'selected':''}>循环10次</option></select></div>
-        <button class="btn btn-primary" onclick="updatePlaylistSettings()">保存</button>`);
-}
 
-async function updatePlaylistSettings() {
-    try {
-        await utils.request('/playlist', { method: 'PUT', body: JSON.stringify({
-            name: document.getElementById('plName').value.trim(),
-            description: document.getElementById('plDesc').value,
-            transitionEffect: document.getElementById('plTransition').value,
-            defaultInterval: parseInt(document.getElementById('plInterval').value),
-            tagPlayMode: document.getElementById('plTagPlayMode').value,
-            tagLoopCount: parseInt(document.getElementById('plTagLoopCount').value) }) });
-        closeModal(); loadPlaylistList(); showToast('保存成功');
-    } catch(e) { showToast('保存失败: '+e.message,'error'); }
-}
 
 function showAddTagModal() {
     showModal('新建播放项目', `<div class="field"><label>标签</label><div class="check-group" id="addTagSelect">加载中...</div></div>

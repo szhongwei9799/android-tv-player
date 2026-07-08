@@ -17,7 +17,7 @@ data class ScheduledTask(
     val name: String,
     val type: TaskType,
     val playlistId: Long? = null,
-    val durationMinutes: Int? = null,  // null=无限制, N=播放N分钟后恢复
+    val endTime: String? = null,  // "HH:mm" - 播放结束时间, null=播放至媒体自然结束
     val cronExpression: String? = null,
     val timeOfDay: String? = null,
     val daysOfWeek: String? = null,  // 存储为逗号分隔字符串 "1,2,3,4,5"
