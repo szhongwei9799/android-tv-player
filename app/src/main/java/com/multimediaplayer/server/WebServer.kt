@@ -29,6 +29,7 @@ class WebServer(
         AppLogger.i("HTTP", "$method $uri")
         
         // CORS头
+        val corsHeaders = mapOf(
             "Access-Control-Allow-Origin" to "*",
             "Access-Control-Allow-Methods" to "GET, POST, PUT, DELETE, OPTIONS",
             "Access-Control-Allow-Headers" to "Content-Type, Authorization"
