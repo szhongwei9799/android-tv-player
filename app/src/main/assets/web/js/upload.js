@@ -1,29 +1,31 @@
 const uploadManager = {
     queue: [], uploading: false, maxConcurrent: 2,
     init() {
-        const dz = document.getElementById('dropzone');
-        if (!dz) return;
-        dz.addEventListener('click', () => document.getElementById('fileInput').click());
-        dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-        dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-        dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); this.addFiles(e.dataTransfer.files); });
-        document.getElementById('fileInput').addEventListener('change', e => { this.addFiles(e.target.files); e.target.value = ''; });
+        const fi = document.getElementById('fileInput');
+        if (!fi) return;
+        fi.addEventListener('change', e => { this.addFiles(e.target.files); e.target.value = ''; });
     },
-    addFiles(files) { for (const f of files) this.queue.push({file:f,status:'pending',progress:0}); this.renderProgress(); this.processQueue(); },
+    addFiles(files) {
+        for (const f of files) this.queue.push({file:f,status:'pending',progress:0});
+        document.getElementById('uploadProgress').style.display = 'block';
+        this.renderProgress();
+        this.processQueue();
+    },
     async processQueue() {
         if (this.uploading) return;
         const p = this.queue.filter(i => i.status === 'pending');
-        if (!p.length) return;
+        if (!p.length) { document.getElementById('uploadProgress').style.display = 'none'; return; }
         this.uploading = true;
         await Promise.all(p.slice(0, this.maxConcurrent).map(i => this.uploadFile(i)));
-        this.uploading = false; this.processQueue();
+        this.uploading = false;
+        this.processQueue();
     },
     uploadFile(item) {
         return new Promise(resolve => {
             item.status = 'uploading'; this.renderProgress();
             const xhr = new XMLHttpRequest();
             xhr.upload.addEventListener('progress', e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); this.renderProgress(); } });
-            xhr.onload = () => { if (xhr.status === 200) { const r = JSON.parse(xhr.responseText); item.status = r.success ? 'success' : 'error'; } else { item.status = 'error'; } this.renderProgress(); if (item.status === 'success') loadMediaList(); else showToast('Upload failed','error'); resolve(); };
+            xhr.onload = () => { if (xhr.status === 200) { const r = JSON.parse(xhr.responseText); item.status = r.success ? 'success' : 'error'; } else { item.status = 'error'; } this.renderProgress(); if (item.status === 'success') loadMediaList(); else showToast('上传失败','error'); resolve(); };
             xhr.onerror = () => { item.status = 'error'; this.renderProgress(); resolve(); };
             xhr.open('POST', '/api/media/upload');
             xhr.setRequestHeader('Content-Type', 'application/octet-stream');

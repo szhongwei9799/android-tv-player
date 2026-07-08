@@ -56,10 +56,11 @@
           <p class="page-desc">管理所有媒体文件，支持上传和网络导入</p>
         </div>
         <div class="page-actions">
-          <button class="btn btn-primary" onclick="showUploadModal()">
+          <button class="btn btn-primary" onclick="triggerFileUpload()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             上传
           </button>
+          <input type="file" id="fileInput" multiple accept="video/*,image/*,.ppt,.pptx,.pdf,audio/*" style="display:none">
           <button class="btn btn-outline" onclick="showAddMediaModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             网络媒体
@@ -99,19 +100,9 @@
         </button>
       </div>
 
-      <div id="mediaGrid" class="media-grid"><div class="loading">加载中...</div></div>
+      <div id="mediaList" class="media-table"><div class="loading">加载中...</div></div>
 
-      <div id="uploadArea" class="upload-panel" style="display:none;">
-        <div class="upload-dropzone" id="dropzone">
-          <div class="dz-icon">
-            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </div>
-          <p class="dz-title">拖拽文件到此处上传</p>
-          <p class="dz-hint">或点击选择文件 · 支持视频、图片、PPT、PDF、音频</p>
-          <input type="file" id="fileInput" multiple accept="video/*,image/*,.ppt,.pptx,.pdf,audio/*" hidden>
-        </div>
-        <div id="uploadProgress" class="upload-progress"></div>
-      </div>
+      <div id="uploadProgress" class="upload-progress" style="display:none"></div>
     </section>
 
     <!-- ===== Tags ===== -->

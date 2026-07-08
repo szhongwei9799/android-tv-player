@@ -1,30 +1,41 @@
 let mediaList = [], selectedMediaIds = new Set();
 
+function triggerFileUpload() {
+    document.getElementById('fileInput').click();
+}
+
 async function loadMediaList() {
-    const g = document.getElementById('mediaGrid');
+    const g = document.getElementById('mediaList');
     g.innerHTML = '<div class="loading">加载媒体库...</div>';
     try {
         const r = await utils.request('/media');
         mediaList = r.data || [];
         if (!mediaList.length) {
             g.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><p style="font-size:14px;margin-bottom:3px;">暂无媒体文件</p><p style="font-size:12px;">点击右上角「上传」或「网络媒体」添加</p></div>';
-        } else { renderMediaGrid(); loadTagsForFilter(); }
+        } else { renderMediaTable(); loadTagsForFilter(); }
     } catch (e) {
         g.innerHTML = `<div class="empty-state"><div class="empty-icon" style="opacity:.5;">⚠️</div><p>${e.message}</p></div>`;
         showToast(e.message, 'error');
     }
 }
 
-function renderMediaGrid() {
-    const g = document.getElementById('mediaGrid');
-    g.innerHTML = mediaList.map(m => `<div class="media-item ${selectedMediaIds.has(m.id)?'selected':''}" onclick="selectMedia(${m.id})" ondblclick="editMedia(${m.id})">
-        <div class="media-thumb">${m.thumbnail ? `<img src="${m.thumbnail}" alt="">` : utils.mediaIcon(m.type)}</div>
-        <div class="media-info">
-            <div class="media-name" title="${escHtml(m.name)}">${escHtml(m.name)}</div>
-            <div class="media-meta">${utils.mediaLabel(m.type)} · ${utils.formatFileSize(m.fileSize)}${m.duration ? ' · '+utils.formatDuration(m.duration) : ''}</div>
-            <div class="media-tags" id="tags-${m.id}"></div>
-        </div>
-    </div>`).join('');
+function renderMediaTable() {
+    const g = document.getElementById('mediaList');
+    g.innerHTML = `<table><thead><tr>
+        <th style="width:28px"></th>
+        <th style="width:36px">类型</th>
+        <th>名称</th>
+        <th style="width:70px">大小</th>
+        <th style="width:60px">时长</th>
+        <th style="width:auto">标签</th>
+    </tr></thead><tbody>${mediaList.map(m => `<tr class="${selectedMediaIds.has(m.id)?'selected':''}" onclick="selectMedia(${m.id})" ondblclick="editMedia(${m.id})">
+        <td class="td-chk">${selectedMediaIds.has(m.id)?'<span class="chk-mark">✓</span>':''}</td>
+        <td class="td-type">${utils.mediaIcon(m.type)}</td>
+        <td class="td-name" title="${escHtml(m.name)}">${escHtml(m.name)}</td>
+        <td class="td-size">${utils.formatFileSize(m.fileSize)}</td>
+        <td class="td-dur">${m.duration ? utils.formatDuration(m.duration) : '-'}</td>
+        <td class="td-tags" id="tags-${m.id}"></td>
+    </tr>`).join('')}</tbody></table>`;
     mediaList.forEach(m => loadMediaTags(m.id));
     updateMediaControls();
 }
@@ -41,7 +52,7 @@ async function loadMediaTags(id) {
 
 function selectMedia(id) {
     selectedMediaIds.has(id) ? selectedMediaIds.delete(id) : selectedMediaIds.add(id);
-    renderMediaGrid();
+    renderMediaTable();
 }
 
 function updateMediaControls() {
@@ -96,7 +107,7 @@ async function filterMedia() {
     const type = document.getElementById('mediaTypeFilter').value;
     const tagId = document.getElementById('mediaTagFilter').value;
     const q = document.getElementById('mediaSearch').value.toLowerCase();
-    const g = document.getElementById('mediaGrid');
+    const g = document.getElementById('mediaList');
     g.innerHTML = '<div class="loading">筛选...</div>';
     try {
         let url = '/media';
@@ -108,12 +119,27 @@ async function filterMedia() {
         let f = r.data || [];
         if (q) f = f.filter(m => m.name.toLowerCase().includes(q));
         if (!f.length) { g.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>没有匹配的媒体</p></div>'; return; }
-        g.innerHTML = f.map(m => `<div class="media-item ${selectedMediaIds.has(m.id)?'selected':''}" onclick="selectMedia(${m.id})" ondblclick="editMedia(${m.id})">
-            <div class="media-thumb">${m.thumbnail ? `<img src="${m.thumbnail}" alt="">` : utils.mediaIcon(m.type)}</div>
-            <div class="media-info"><div class="media-name" title="${escHtml(m.name)}">${escHtml(m.name)}</div>
-            <div class="media-meta">${utils.mediaLabel(m.type)} · ${utils.formatFileSize(m.fileSize)}</div></div>
-        </div>`).join('');
-        f.forEach(m => loadMediaTags(m.id));
+        g.innerHTML = `<table><thead><tr>
+            <th style="width:28px"></th>
+            <th style="width:36px">类型</th>
+            <th>名称</th>
+            <th style="width:70px">大小</th>
+            <th style="width:60px">时长</th>
+            <th style="width:auto">标签</th>
+        </tr></thead><tbody>${f.map(m => `<tr class="${selectedMediaIds.has(m.id)?'selected':''}" onclick="selectMedia(${m.id})" ondblclick="editMedia(${m.id})">
+            <td class="td-chk">${selectedMediaIds.has(m.id)?'<span class="chk-mark">✓</span>':''}</td>
+            <td class="td-type">${utils.mediaIcon(m.type)}</td>
+            <td class="td-name" title="${escHtml(m.name)}">${escHtml(m.name)}</td>
+            <td class="td-size">${utils.formatFileSize(m.fileSize)}</td>
+            <td class="td-dur">${m.duration ? utils.formatDuration(m.duration) : '-'}</td>
+            <td class="td-tags" id="ftags-${m.id}"></td>
+        </tr>`).join('')}</tbody></table>`;
+        f.forEach(m => {
+            utils.request(`/media/${m.id}/tags`).then(r => {
+                const el = document.getElementById(`ftags-${m.id}`);
+                if (el && r.data) el.innerHTML = r.data.map(t => `<span class="tag-badge" style="background:${t.color}22;color:${t.color}">${escHtml(t.name)}</span>`).join('');
+            }).catch(_ => {});
+        });
     } catch (e) { g.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`; }
 }
 
@@ -154,12 +180,6 @@ async function applyBatchTags() {
     }
     selectedMediaIds.clear(); loadMediaList(); updateMediaControls();
     showToast(`分配完成: ${ok} 成功, ${fail} 失败`);
-}
-
-function showUploadModal() {
-    const el = document.getElementById('uploadArea');
-    if (el.style.display === 'none') { el.style.display = 'block'; el.scrollIntoView({behavior:'smooth'}); }
-    else el.style.display = 'none';
 }
 
 function showAddMediaModal() {
